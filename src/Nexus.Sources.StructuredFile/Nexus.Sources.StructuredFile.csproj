@@ -7,6 +7,26 @@
     </RestoreAdditionalProjectSources>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <Description>This package makes a base class available to simplify reading strcutured data files into Nexus.</Description>
+	  <PackageTags>Nexus remoting time-series data lake</PackageTags>
+    <!-- <PackageIcon>icon.png</PackageIcon> -->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <!-- This prevents the package to be rebuilt when dotnet test is executed. -->
+  <PropertyGroup Condition="$(GeneratePackage) == 'true'">
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+  
+  <!-- <ItemGroup>
+    <None Include="../../../doc/images/icon.png" Pack="true" PackagePath="/" />
+  </ItemGroup> -->
+
+  <ItemGroup>
+    <None Include="../../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Nexus.Extensibility" Version="1.0.0-beta.11.213">
       <ExcludeAssets>runtime;native</ExcludeAssets>

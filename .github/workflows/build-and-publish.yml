@@ -37,7 +37,7 @@ jobs:
 
       - name: Build
         run: |
-          dotnet publish -c Release -o publish src/Nexus.Sources.StructuredFile/Nexus.Sources.StructuredFile.csproj
+          dotnet build -c Release /p:GeneratePackage=true src/Nexus.Sources.StructuredFile/Nexus.Sources.StructuredFile.csproj
 
       - name: Test
         run: |
