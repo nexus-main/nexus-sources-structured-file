@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{55E45CEF-E8A1-47C1-9F2F-8AB42BBC911F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nexus.Sources.StructureFile", "src\Nexus.Sources.StructuredFile\Nexus.Sources.StructuredFile.csproj", "{BA66C4A2-9758-425B-9A64-106180246B31}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{5BDDB4C0-8CE5-46C8-93CC-A39BB679487A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nexus.Sources.StructuredFile.Tests", "tests\Nexus.Sources.StructuredFile.Tests\Nexus.Sources.StructuredFile.Tests.csproj", "{9A982CA0-1AE7-4B40-9F89-E66E7858ADFE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BA66C4A2-9758-425B-9A64-106180246B31}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA66C4A2-9758-425B-9A64-106180246B31}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA66C4A2-9758-425B-9A64-106180246B31}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA66C4A2-9758-425B-9A64-106180246B31}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9A982CA0-1AE7-4B40-9F89-E66E7858ADFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A982CA0-1AE7-4B40-9F89-E66E7858ADFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A982CA0-1AE7-4B40-9F89-E66E7858ADFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A982CA0-1AE7-4B40-9F89-E66E7858ADFE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{BA66C4A2-9758-425B-9A64-106180246B31} = {55E45CEF-E8A1-47C1-9F2F-8AB42BBC911F}
+		{9A982CA0-1AE7-4B40-9F89-E66E7858ADFE} = {5BDDB4C0-8CE5-46C8-93CC-A39BB679487A}
+	EndGlobalSection
+EndGlobal
