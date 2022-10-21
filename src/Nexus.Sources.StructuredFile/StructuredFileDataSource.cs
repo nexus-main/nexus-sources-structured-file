@@ -286,10 +286,10 @@ namespace Nexus.Sources
             var representation = catalogItem.Representation;
             var catalog = catalogItem.Catalog;
             var samplePeriod = representation.SamplePeriod;
-            var fileSourceId = catalogItem.Resource.Properties.GetStringValue(StructureFileDataModelExtensions.FileSourceIdKey)!;
+            var fileSourceId = catalogItem.Resource.Properties?.GetStringValue(StructureFileDataModelExtensions.FileSourceIdKey)!;
             var fileSource = FileSourceProvider(catalogItem.Catalog.Id)[fileSourceId];
             var fileLength = fileSource.FilePeriod.Ticks / samplePeriod.Ticks;
-            var originalName = catalogItem.Resource.Properties.GetStringValue(StructureFileDataModelExtensions.OriginalNameKey)!;
+            var originalName = catalogItem.Resource.Properties?.GetStringValue(StructureFileDataModelExtensions.OriginalNameKey)!;
 
             var bufferOffset = 0;
             var currentBegin = begin;
@@ -519,13 +519,13 @@ namespace Nexus.Sources
                 foreach (var resource in catalog.Resources)
                 {
                     // ensure file source id
-                    var fileSourceId = resource.Properties.GetStringValue(StructureFileDataModelExtensions.FileSourceIdKey);
+                    var fileSourceId = resource.Properties?.GetStringValue(StructureFileDataModelExtensions.FileSourceIdKey);
 
                     if (string.IsNullOrWhiteSpace(fileSourceId))
                         throw new Exception($"The resource {resource.Id} is missing the file source property.");
 
                     // ensure original name
-                    var originalName = resource.Properties.GetStringValue(StructureFileDataModelExtensions.OriginalNameKey);
+                    var originalName = resource.Properties?.GetStringValue(StructureFileDataModelExtensions.OriginalNameKey);
 
                     if (string.IsNullOrWhiteSpace(originalName))
                         throw new Exception($"The resource {resource.Id} is missing the original name property.");

@@ -135,7 +135,7 @@ namespace Nexus.Sources.Tests
             var catalog = await dataSource!.GetCatalogAsync("/A/B/C", CancellationToken.None);
             var resource = catalog.Resources!.First();
             var representation = resource.Representations!.First();
-            var catalogItem = new CatalogItem(catalog, resource, representation);
+            var catalogItem = new CatalogItem(catalog, resource, representation, default);
 
             var begin = new DateTime(2019, 12, 31, 0, 0, 0, DateTimeKind.Utc);
             var end = new DateTime(2020, 01, 03, 0, 0, 0, DateTimeKind.Utc);
@@ -196,7 +196,7 @@ namespace Nexus.Sources.Tests
             var catalog = await dataSource!.GetCatalogAsync("/A/B/C", CancellationToken.None);
             var resource = catalog.Resources!.First();
             var representation = resource.Representations!.First();
-            var catalogItem = new CatalogItem(catalog, resource, representation);
+            var catalogItem = new CatalogItem(catalog, resource, representation, default);
             var request = new ReadRequest(catalogItem, default, default);
 
             await Assert.ThrowsAsync<ArgumentException>(() =>
