@@ -1,3 +1,7 @@
+## v1.0.1 - 2022-11-03
+
+Improve handling of irregular files.
+
 ## v1.0.0 - 2022-10-29
 
 This is the first release.

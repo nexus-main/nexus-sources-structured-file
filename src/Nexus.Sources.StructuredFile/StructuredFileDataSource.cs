@@ -313,8 +313,8 @@ namespace Nexus.Sources
 
                 /* CB = Current Begin, FP = File Period
                  * 
-                 *  begin    CB-FP        CB         CB+FP                 end
-                 *    |--------|-----------|-----------|-----------|--------|
+                 *  begin    CB-FP    FB  CB     FB  CB+FP                 end
+                 *    |--------|-------|---|------|----|-----------|--------|
                  */
                 var CB_MINUS_FP = currentBegin - fileSource.FilePeriod;
                 var CB_PLUS_FP = currentBegin + fileSource.FilePeriod;
@@ -322,11 +322,24 @@ namespace Nexus.Sources
                 int fileBlock;
                 TimeSpan currentPeriod;
 
+                /* Found file starts too early
+                 *  begin FB CB-FP        CB         CB+FP                 end
+                 *    |----|---|-----------|-----------|-----------|--------|
+                 *     ~~~~~~~~~    
+                 */
+                if (fileBegin <= CB_MINUS_FP)
+                {
+                    throw new Exception("This should never happen");
+                }
+
                 /* normal case: current begin may be greater than file begin if: 
                  * - this is the very first iteration
                  * - the current file begins later than expected (incomplete file)
+                 *  begin    CB-FP    FB  CB         CB+FP                 end
+                 *    |--------|-------|---|-----------|-----------|--------|
+                 *              ~~~~~~~~~~~~
                  */
-                if (CB_MINUS_FP < fileBegin && fileBegin <= currentBegin)
+                else if (fileBegin <= currentBegin)
                 {
                     var consumedFilePeriod = currentBegin - fileBegin;
                     var remainingFilePeriod = fileSource.FilePeriod - consumedFilePeriod;
@@ -379,13 +392,21 @@ namespace Nexus.Sources
                         }
                     }
                 }
-                /* there was an incomplete file, skip the incomplete part */
-                else if (CB_PLUS_FP <= fileBegin && fileBegin < end)
+                /* there was an incomplete file, skip the incomplete part 
+                 *
+                 *  begin    CB-FP        CB     FB                        end
+                 *    |--------|-----------|------|--------------------------
+                 *                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                 *                          <skip >
+                 */
+                else if (fileBegin < end)
                 {
                     Logger.LogDebug("Skipping period {FileBegin} to {CurrentBegin}", fileBegin, currentBegin);
                     currentPeriod = fileBegin - currentBegin;
                     fileBlock = (int)(currentPeriod.Ticks / samplePeriod.Ticks);
                 }
+
+                /* file begin is > end, break loop */
                 else
                 {
                     break;
