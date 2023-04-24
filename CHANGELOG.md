@@ -1,3 +1,7 @@
+## v2.0.0-beta.2 - 2023-04-24
+
+- Bump dependencies
+
 ## v2.0.0-beta.1 - 2023-04-24
 
 - .NET 7
