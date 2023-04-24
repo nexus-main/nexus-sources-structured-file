@@ -1,6 +1,6 @@
 {
   "/A/B/C": {
-    "average": {
+    "average": [{
       "PathSegments": [
         "'DATA'",
         "yyyy-MM"
@@ -10,8 +10,8 @@
       "FileDateTimeSelector": "yyyy-MM-dd_HH-mm-ss",
       "FilePeriod": "1.00:00:00",
       "UtcOffset": "00:00:00"
-    },
-    "real_time": {
+    }],
+    "real_time": [{
       "PathSegments": [
         "'DATA'",
         "yyyy-MM"
@@ -21,6 +21,6 @@
       "FileDateTimeSelector": "yyyy-MM-dd_HH-mm-ss",
       "FilePeriod": "00:30:00",
       "UtcOffset": "00:00:00"
-    }
+    }]
   }
 }

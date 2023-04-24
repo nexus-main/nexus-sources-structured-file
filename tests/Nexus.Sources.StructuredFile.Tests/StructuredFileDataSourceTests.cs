@@ -33,7 +33,7 @@ namespace Nexus.Sources.Tests
             if (methodInfo is null)
                 throw new Exception("method info is null");
 
-            var config = tester.Config.Values.First().Values.First();
+            var config = tester.Config.Values.First().Values.First()[0];
 
             var args = new object[] { config, default! };
             methodInfo.Invoke(dataSource, args);
@@ -51,6 +51,7 @@ namespace Nexus.Sources.Tests
         [InlineData("DATABASES/G", "2019-12-31T00-40-22Z", "2020-01-01T01-39-23Z")]
         [InlineData("DATABASES/H", "2019-12-31T12-00-00Z", "2020-01-02T00-20-00Z")]
         [InlineData("DATABASES/I", "2019-12-31T23-55-00Z", "2020-01-01T00-15-00Z")]
+        [InlineData("DATABASES/J", "2020-01-01T00-00-00Z", "2020-01-05T00-00-00Z")]
         public async Task CanProvideTimeRange(string root, string expectedBeginString, string expectedEndString)
         {
             var expectedBegin = DateTime.ParseExact(expectedBeginString, "yyyy-MM-ddTHH-mm-ssZ", null, DateTimeStyles.AdjustToUniversal);
@@ -66,10 +67,10 @@ namespace Nexus.Sources.Tests
 
             await dataSource!.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
-            var actual = await dataSource!.GetTimeRangeAsync("/A/B/C", CancellationToken.None);
+            var (begin, end) = await dataSource!.GetTimeRangeAsync("/A/B/C", CancellationToken.None);
 
-            Assert.Equal(expectedBegin, actual.Begin);
-            Assert.Equal(expectedEnd, actual.End);
+            Assert.Equal(expectedBegin, begin);
+            Assert.Equal(expectedEnd, end);
         }
 
         [Theory]
@@ -83,6 +84,7 @@ namespace Nexus.Sources.Tests
         [InlineData("DATABASES/G", "2020-01-01T00-00-00Z", "2020-01-02T00-00-00Z", 2 / 86400.0, 6)]
         [InlineData("DATABASES/H", "2020-01-02T00-00-00Z", "2020-01-03T00-00-00Z", 2 / 144.0, 4)]
         [InlineData("DATABASES/I", "2019-12-31T00-00-00Z", "2020-01-02T00-00-00Z", 2 / (2 * 288.0), 4)]
+        [InlineData("DATABASES/J", "2020-01-01T00-00-00Z", "2020-01-06T00-00-00Z", 3 / 5.0, 1)]
         public async Task CanProvideAvailability(string root, string beginString, string endString, double expected, int precision)
         {
             var begin = DateTime.ParseExact(beginString, "yyyy-MM-ddTHH-mm-ssZ", default, DateTimeStyles.AdjustToUniversal);
@@ -133,8 +135,8 @@ namespace Nexus.Sources.Tests
             await dataSource!.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
             var catalog = await dataSource!.GetCatalogAsync("/A/B/C", CancellationToken.None);
-            var resource = catalog.Resources!.First();
-            var representation = resource.Representations!.First();
+            var resource = catalog.Resources![0];
+            var representation = resource.Representations![0];
             var catalogItem = new CatalogItem(catalog, resource, representation, default);
 
             var begin = new DateTime(2019, 12, 31, 0, 0, 0, DateTimeKind.Utc);
@@ -152,7 +154,7 @@ namespace Nexus.Sources.Tests
                     .ToArray();
 
                 var offset = (int)(dateTime - begin).TotalSeconds;
-                data.CopyTo(expectedData.AsSpan().Slice(offset));
+                data.CopyTo(expectedData.AsSpan()[offset..]);
                 expectedStatus.AsSpan().Slice(offset, 600).Fill(1);
             }
 
@@ -194,8 +196,8 @@ namespace Nexus.Sources.Tests
             await dataSource!.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
             var catalog = await dataSource!.GetCatalogAsync("/A/B/C", CancellationToken.None);
-            var resource = catalog.Resources!.First();
-            var representation = resource.Representations!.First();
+            var resource = catalog.Resources![0];
+            var representation = resource.Representations![0];
             var catalogItem = new CatalogItem(catalog, resource, representation, default);
             var request = new ReadRequest(catalogItem, default, default);
 

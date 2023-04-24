@@ -7,7 +7,7 @@ namespace Nexus.Sources.Tests
     {
         #region Fields
 
-        private bool _overrideFindFilePathsWithNoDateTime;
+        private readonly bool _overrideFindFilePathsWithNoDateTime;
 
         #endregion
 
@@ -23,7 +23,7 @@ namespace Nexus.Sources.Tests
 
         #region Properties
 
-        public Dictionary<string, Dictionary<string, FileSource>> Config { get; private set; } = default!;
+        public Dictionary<string, Dictionary<string, IReadOnlyList<FileSource>>> Config { get; private set; } = default!;
 
         #endregion
 
@@ -37,12 +37,12 @@ namespace Nexus.Sources.Tests
                 throw new Exception($"The configuration file does not exist on path {configFilePath}.");
 
             var jsonString = await File.ReadAllTextAsync(configFilePath, cancellationToken);
-            Config = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, FileSource>>>(jsonString)!;
+            Config = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, IReadOnlyList<FileSource>>>>(jsonString)!;
         }
 
-        protected override Task<Func<string, Dictionary<string, FileSource>>> GetFileSourceProviderAsync(CancellationToken cancellationToken)
+        protected override Task<Func<string, Dictionary<string, IReadOnlyList<FileSource>>>> GetFileSourceProviderAsync(CancellationToken cancellationToken)
         {
-            return Task.FromResult<Func<string, Dictionary<string, FileSource>>>(catalogId => Config[catalogId]);
+            return Task.FromResult<Func<string, Dictionary<string, IReadOnlyList<FileSource>>>>(catalogId => Config[catalogId]);
         }
 
         protected override Task<CatalogRegistration[]> GetCatalogRegistrationsAsync(string path, CancellationToken cancellationToken)
@@ -72,7 +72,7 @@ namespace Nexus.Sources.Tests
         protected override async Task ReadSingleAsync(ReadInfo readInfo, CancellationToken cancellationToken)
         {
             var bytes = await File
-                .ReadAllBytesAsync(readInfo.FilePath);
+                .ReadAllBytesAsync(readInfo.FilePath, cancellationToken);
 
             bytes
                 .CopyTo(readInfo.Data.Span);

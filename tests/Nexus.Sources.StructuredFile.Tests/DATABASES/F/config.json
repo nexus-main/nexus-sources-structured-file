@@ -1,6 +1,6 @@
 {
   "/A/B/C": {
-    "default": {
+    "default": [{
       "PathSegments": [
         "'DATA'",
         "yyyy-MM"
@@ -10,6 +10,6 @@
       "FileDateTimeSelector": "yyyyMMdd_HH",
       "FilePeriod": "01:00:00",
       "UtcOffset": "00:00:00"
-    }
+    }]
   }
 }

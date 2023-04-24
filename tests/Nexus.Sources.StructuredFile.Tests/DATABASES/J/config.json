@@ -1,0 +1,32 @@
+{
+  "/A/B/C": {
+    "default": [
+      {
+        "PathSegments": [
+          "'DATA1'"
+        ],
+        "FileTemplate": "yyyy_MM_dd'.dat'",
+        "FilePeriod": "1.00:00:00",
+        "UtcOffset": "00:00:00"
+      }, 
+      {
+        "Begin": "2020-01-02",
+        "PathSegments": [
+          "'DATA1'"
+        ],
+        "FileTemplate": "yyyy-MM-dd'.dat'",
+        "FilePeriod": "1.00:00:00",
+        "UtcOffset": "00:00:00"
+      },
+      {
+        "Begin": "2020-01-03",
+        "PathSegments": [
+          "'DATA2'"
+        ],
+        "FileTemplate": "yyyy-MM-dd'.dat'",
+        "FilePeriod": "1.00:00:00",
+        "UtcOffset": "00:00:00"
+      }
+    ]
+  }
+}

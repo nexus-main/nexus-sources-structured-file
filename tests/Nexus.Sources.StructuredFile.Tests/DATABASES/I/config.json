@@ -1,6 +1,6 @@
 {
   "/A/B/C": {
-    "default": {
+    "default": [{
       "PathSegments": [
         "'DATA'",
         "yyyy-MM-dd_HH-mm-ss"
@@ -8,6 +8,6 @@
       "FileTemplate": "'data.dat'",
       "FilePeriod": "00:05:00",
       "UtcOffset": "00:00:00"
-    }
+    }]
   }
 }

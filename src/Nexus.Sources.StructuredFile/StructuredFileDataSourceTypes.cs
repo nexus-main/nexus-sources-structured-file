@@ -6,6 +6,7 @@ namespace Nexus.Sources
     /// <summary>
     /// A structure to hold information about a file-based database.
     /// </summary>
+    /// <param name="Begin">The date/time from when this file source applies.</param>
     /// <param name="PathSegments">A format string that describes the folder structure of the data. An example of a file that is located under the path "group-A/2020-01" would translate into the array ["'group-A'", "yyyy-MM"].</param>
     /// <param name="FileTemplate">A format string that describes the file naming scheme. The template of a file named 20200101_13_my-id_1234.dat would look like "yyyyMMdd_HH'_my-id_????.dat'".</param>
     /// <param name="FileDateTimePreselector">An optional regular expression to select only relevant parts of a file name (e.g. to select the date/time and a unqiue identifier in case there is more than one kind of file in the same folder). In case of a file named 20200101_13_my-id_1234.dat the preselector could be like "(.{11})_my-id".</param>
@@ -14,6 +15,7 @@ namespace Nexus.Sources
     /// <param name="UtcOffset">The utc offset of the file.</param>
     /// <param name="AdditionalProperties">Additional properties to be used by the data source implementation.</param>
     public record FileSource(
+        DateTime Begin,
         string[] PathSegments,
         string FileTemplate,
         string? FileDateTimePreselector,
