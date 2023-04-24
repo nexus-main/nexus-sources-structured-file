@@ -1,3 +1,8 @@
+## v2.0.0-beta.1 - 2023-04-24
+
+- .NET 7
+- Allow multiple file sources
+
 ## v1.0.1 - 2022-11-03
 
 Improve handling of irregular files.
