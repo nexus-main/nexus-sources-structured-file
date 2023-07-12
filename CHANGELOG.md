@@ -1,3 +1,7 @@
+## v2.0.0-beta.3 - 2023-07-12
+
+- Allow inheriting types to read more than a single column.
+
 ## v2.0.0-beta.2 - 2023-04-24
 
 - Bump dependencies
