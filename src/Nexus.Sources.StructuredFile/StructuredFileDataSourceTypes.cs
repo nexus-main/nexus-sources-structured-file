@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using Nexus.DataModel;
+using Nexus.Extensibility;
 
 namespace Nexus.Sources
 {
@@ -28,26 +29,32 @@ namespace Nexus.Sources
     /// <summary>
     /// A structure to hold read information.
     /// </summary>
-    /// <param name="OriginalName">The original name of the resource to read.</param>
     /// <param name="FilePath">The path of the file to read.</param>
-    /// <param name="CatalogItem">The catalog item to read.</param>
     /// <param name="FileSource">The associated file source.</param>
-    /// <param name="Data">The data buffer.</param>
-    /// <param name="Status">The status buffer.</param>
     /// <param name="FileBegin">The begin date/time of the file.</param>
     /// <param name="FileOffset">The element offset within the file.</param>
     /// <param name="FileBlock">The element count to read from the file.</param>
     /// <param name="FileLength">The expected total number of elements within the file.</param>
     public record ReadInfo(
-        string OriginalName,
         string FilePath,
-        CatalogItem CatalogItem,
         FileSource FileSource,
-        Memory<byte> Data,
-        Memory<byte> Status,
         DateTime FileBegin,
         long FileOffset,
         long FileBlock,
         long FileLength
     );
+
+    /// <summary>
+    /// An read request with additional data.
+    /// </summary>
+    /// <param name="CatalogItem">The CatalogItem to be read.</param>
+    /// <param name="Data">The data buffer.</param>
+    /// <param name="Status">The status buffer. A value of 0x01 ('1') indicates that the corresponding value in the data buffer is valid, otherwise it is treated as System.Double.NaN.</param>
+    /// <param name="OriginalName">The original name of the resource to read.</param>
+    public record StructuredFileReadRequest(
+        CatalogItem CatalogItem,
+        Memory<byte> Data,
+        Memory<byte> Status,
+        string OriginalName
+    ) : ReadRequest(CatalogItem, Data, Status);
 }

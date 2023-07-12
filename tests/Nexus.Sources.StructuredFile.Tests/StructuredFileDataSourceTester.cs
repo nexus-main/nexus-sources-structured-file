@@ -69,18 +69,21 @@ namespace Nexus.Sources.Tests
             return Task.FromResult(catalog);
         }
 
-        protected override async Task ReadSingleAsync(ReadInfo readInfo, CancellationToken cancellationToken)
+        protected override async Task ReadAsync(ReadInfo readInfo, StructuredFileReadRequest[] readRequests, CancellationToken cancellationToken)
         {
             var bytes = await File
                 .ReadAllBytesAsync(readInfo.FilePath, cancellationToken);
 
-            bytes
-                .CopyTo(readInfo.Data.Span);
+            foreach (var readRequest in readRequests)
+            {
+                bytes
+                    .CopyTo(readRequest.Data.Span);
 
-            readInfo
-                .Status
-                .Span
-                .Fill(1);
+                readRequest
+                    .Status
+                    .Span
+                    .Fill(1);
+            }
         }
 
         protected override async Task<(string[], DateTime)> FindFilePathsAsync(DateTime begin, FileSource config)

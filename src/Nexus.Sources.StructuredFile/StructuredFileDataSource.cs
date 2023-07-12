@@ -77,8 +77,7 @@ namespace Nexus.Sources
         /// </summary>
         /// <param name="cancellationToken">A token to cancel the current operation.</param>
         /// <returns>The task.</returns>
-        protected virtual Task
-            InitializeAsync(CancellationToken cancellationToken)
+        protected virtual Task InitializeAsync(CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }
@@ -88,8 +87,8 @@ namespace Nexus.Sources
         /// </summary>
         /// <param name="cancellationToken">A token to cancel the current operation.</param>
         /// <returns>The task.</returns>
-        protected abstract Task<Func<string, Dictionary<string, IReadOnlyList<FileSource>>>>
-            GetFileSourceProviderAsync(CancellationToken cancellationToken);
+        protected abstract Task<Func<string, Dictionary<string, IReadOnlyList<FileSource>>>> GetFileSourceProviderAsync(
+            CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the catalog registrations that are located under <paramref name="path"/>.
@@ -97,8 +96,9 @@ namespace Nexus.Sources
         /// <param name="path">The parent path for which to return catalog registrations.</param>
         /// <param name="cancellationToken">A token to cancel the current operation.</param>
         /// <returns>The catalog identifiers task.</returns>
-        protected abstract Task<CatalogRegistration[]>
-           GetCatalogRegistrationsAsync(string path, CancellationToken cancellationToken);
+        protected abstract Task<CatalogRegistration[]> GetCatalogRegistrationsAsync(
+            string path, 
+            CancellationToken cancellationToken);
 
         // GetCatalogAsync:
         // It is not uncommon to have measurement data files with varying channel list over
@@ -114,8 +114,9 @@ namespace Nexus.Sources
         /// <param name="catalogId">The catalog identifier.</param>
         /// <param name="cancellationToken">A token to cancel the current operation.</param>
         /// <returns>The catalog request task.</returns>
-        protected abstract Task<ResourceCatalog>
-            GetCatalogAsync(string catalogId, CancellationToken cancellationToken);
+        protected abstract Task<ResourceCatalog> GetCatalogAsync(
+            string catalogId, 
+            CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the time range of the <see cref="ResourceCatalog"/>.
@@ -123,8 +124,9 @@ namespace Nexus.Sources
         /// <param name="catalogId">The catalog identifier.</param>
         /// <param name="cancellationToken">A token to cancel the current operation.</param>
         /// <returns>The time range task.</returns>
-        protected virtual Task<(DateTime Begin, DateTime End)> 
-            GetTimeRangeAsync(string catalogId, CancellationToken cancellationToken)
+        protected virtual Task<(DateTime Begin, DateTime End)> GetTimeRangeAsync(
+            string catalogId, 
+            CancellationToken cancellationToken)
         {
             return Task.Run(() =>
             {
@@ -194,8 +196,11 @@ namespace Nexus.Sources
         /// <param name="end">The end of the availability period.</param>
         /// <param name="cancellationToken">A token to cancel the current operation.</param>
         /// <returns>The availability task.</returns>
-        protected virtual Task<double>
-            GetAvailabilityAsync(string catalogId, DateTime begin, DateTime end, CancellationToken cancellationToken)
+        protected virtual Task<double> GetAvailabilityAsync(
+            string catalogId, 
+            DateTime begin, 
+            DateTime end, 
+            CancellationToken cancellationToken)
         {
             if (begin >= end)
                 throw new ArgumentException("The start time must be before the end time.");
@@ -248,7 +253,7 @@ namespace Nexus.Sources
                             var actual = availabilities.Sum();
                             var total = (end - begin).Ticks / (double)fileSource.FilePeriod.Ticks;
 
-                            summedAvailability += actual / total;   
+                            summedAvailability += actual / total;
                         }
                     }
 
@@ -279,201 +284,247 @@ namespace Nexus.Sources
         /// <summary>
         /// Reads a dataset.
         /// </summary>
-        /// <param name="catalogItem">The catalog item to read.</param>
         /// <param name="begin">The beginning of the period to read.</param>
         /// <param name="end">The end of the period to read.</param>
-        /// <param name="data">The data buffer.</param>
-        /// <param name="status">The status buffer.</param>
+        /// <param name="requests">The array of read requests.</param>
+        /// <param name="progress">An object to report the read progress between 0.0 and 1.0.</param>
         /// <param name="cancellationToken">A token to cancel the current operation.</param>
         /// <returns>The task.</returns>
-        protected virtual async Task 
-            ReadSingleAsync(CatalogItem catalogItem, DateTime begin, DateTime end, Memory<byte> data, Memory<byte> status, CancellationToken cancellationToken)
+        protected virtual async Task ReadAsync(
+            DateTime begin, 
+            DateTime end, 
+            ReadRequest[] requests,
+            IProgress<double> progress,
+            CancellationToken cancellationToken)
         {
-            var representation = catalogItem.Representation;
-            var catalog = catalogItem.Catalog;
-            var samplePeriod = representation.SamplePeriod;
-            var fileSourceId = catalogItem.Resource.Properties?.GetStringValue(StructuredFileDataModelExtensions.FileSourceIdKey)!;
-            var fileSourceGroup = FileSourceProvider(catalogItem.Catalog.Id)[fileSourceId];
+            var fileSourceGroupIndex = 0.0;
 
-            ValidateFileSourceGroup(fileSourceGroup, catalogItem.Representation.SamplePeriod);
+            // group by file source ID
+            var fileSourceGroups = requests
+                .GroupBy(request => request.CatalogItem.Resource.Properties!.GetStringValue(StructuredFileDataModelExtensions.FileSourceIdKey)!)
+                .ToList();
 
-            var fileSourceBegin = begin;
-
-            while (fileSourceBegin < end)
+            foreach (var group in fileSourceGroups)
             {
-                // get file source
-                var fileSource = fileSourceGroup.LastOrDefault(fileSource => fileSource.Begin <= fileSourceBegin);
+                var fileSourceId = group.Key;
 
-                if (fileSource is null)
+                using var scope = Logger.BeginScope(new Dictionary<string, object>()
                 {
-                    Logger.LogDebug("There is no file source available for the begin date/time ({Begin}) of the request", fileSourceBegin);
+                    ["FileSourceId"] = fileSourceId
+                });
 
-                    fileSource = fileSourceGroup
-                        .FirstOrDefault(fileSource => fileSourceBegin <= fileSource.Begin && fileSource.Begin < end);
+                Logger.LogDebug("Read file source group");
 
-                    if (fileSource is null)
+                try
+                {                   
+                    var firstCatalogItem = group.First().CatalogItem;
+                    var catalogId = firstCatalogItem.Catalog.Id;
+                    var samplePeriod = firstCatalogItem.Representation.SamplePeriod;
+                    var fileSourceGroup = FileSourceProvider(catalogId)[fileSourceId];
+                    var fileSourceBegin = begin;
+
+                    ValidateFileSourceGroup(fileSourceGroup, samplePeriod);
+
+                    while (fileSourceBegin < end)
                     {
-                        Logger.LogDebug("There is no file source available for the current period ({Begin} - {End})", fileSourceBegin, end);
-                        return;
-                    }
+                        // get file source
+                        var fileSource = fileSourceGroup.LastOrDefault(fileSource => fileSource.Begin <= fileSourceBegin);
 
-                    else
-                    {
-                        fileSourceBegin = DateTime.SpecifyKind(fileSource.Begin, DateTimeKind.Utc);
-                    }
-                }
-
-                // get next file source
-                var nextFileSource = fileSourceGroup.FirstOrDefault(current => current.Begin > fileSourceBegin);
-
-                var fileSourceEnd = nextFileSource is null
-                    ? end
-                    : new DateTime(Math.Min(end.Ticks, nextFileSource.Begin.Ticks), DateTimeKind.Utc);
-                    
-                // go!
-                var fileLength = fileSource.FilePeriod.Ticks / samplePeriod.Ticks;
-                var originalName = catalogItem.Resource.Properties?.GetStringValue(StructuredFileDataModelExtensions.OriginalNameKey)!;
-
-                var bufferOffset = (int)((fileSourceBegin - begin).Ticks / samplePeriod.Ticks);
-                var currentBegin = fileSourceBegin;
-                var totalPeriod = fileSourceEnd - fileSourceBegin;
-                var consumedPeriod = TimeSpan.Zero;
-                var remainingPeriod = totalPeriod;
-
-                while (consumedPeriod < totalPeriod)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    // get file path and begin
-                    (var filePaths, var fileBegin) = await FindFilePathsAsync(currentBegin, fileSource);
-
-                    // determine file begin if not yet done using the first file name returned
-                    if (fileBegin == default)
-                    {
-                        if (!TryGetFileBeginByPath(filePaths.First(), fileSource, out fileBegin, default))
-                            throw new Exception($"Unable to determine date/time of file {filePaths.First()}.");
-                    }
-
-                    /* CB = Current Begin, FP = File Period
-                    * 
-                    *  begin    CB-FP    FB  CB     FB  CB+FP                 end
-                    *    |--------|-------|---|------|----|-----------|--------|
-                    */
-                    var CB_MINUS_FP = currentBegin - fileSource.FilePeriod;
-                    var CB_PLUS_FP = currentBegin + fileSource.FilePeriod;
-
-                    int fileBlock;
-                    TimeSpan currentPeriod;
-
-                    /* Found file starts too early
-                    *  begin FB CB-FP        CB         CB+FP                 end
-                    *    |----|---|-----------|-----------|-----------|--------|
-                    *     ~~~~~~~~~    
-                    */
-                    if (fileBegin <= CB_MINUS_FP)
-                    {
-                        throw new Exception("This should never happen");
-                    }
-
-                    /* normal case: current begin may be greater than file begin if: 
-                    * - this is the very first iteration
-                    * - the current file begins later than expected (incomplete file)
-                    *  begin    CB-FP    FB  CB         CB+FP                 end
-                    *    |--------|-------|---|-----------|-----------|--------|
-                    *              ~~~~~~~~~~~~
-                    */
-                    else if (fileBegin <= currentBegin)
-                    {
-                        var consumedFilePeriod = currentBegin - fileBegin;
-                        var remainingFilePeriod = fileSource.FilePeriod - consumedFilePeriod;
-
-                        currentPeriod = TimeSpan.FromTicks(Math.Min(remainingFilePeriod.Ticks, remainingPeriod.Ticks));
-                        Logger.LogTrace("Process period {CurrentBegin} to {CurrentEnd}", currentBegin, currentBegin + currentPeriod);
-
-                        fileBlock = (int)(currentPeriod.Ticks / samplePeriod.Ticks);
-
-                        var fileOffset = consumedFilePeriod.Ticks / samplePeriod.Ticks;
-
-                        foreach (var filePath in filePaths)
+                        if (fileSource is null)
                         {
-                            if (File.Exists(filePath))
+                            Logger.LogDebug("There is no file source available for the begin date/time ({Begin}) of the request", fileSourceBegin);
+
+                            fileSource = fileSourceGroup
+                                .FirstOrDefault(fileSource => fileSourceBegin <= fileSource.Begin && fileSource.Begin < end);
+
+                            if (fileSource is null)
                             {
-                                Logger.LogTrace("Process file {FilePath}", filePath);
-
-                                try
-                                {
-                                    var slicedData = data
-                                        .Slice(bufferOffset * representation.ElementSize, fileBlock * representation.ElementSize);
-
-                                    var slicedStatus = status
-                                        .Slice(bufferOffset, fileBlock);
-
-                                    var readInfo = new ReadInfo(
-                                        originalName,
-                                        filePath,
-                                        catalogItem,
-                                        fileSource,
-                                        slicedData,
-                                        slicedStatus,
-                                        fileBegin,
-                                        fileOffset,
-                                        fileBlock,
-                                        fileLength
-                                    );
-
-                                    await this
-                                        .ReadSingleAsync(readInfo, cancellationToken);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Logger.LogDebug(ex, "Could not process file {FilePath}", filePath);
-                                }
+                                Logger.LogDebug("There is no file source available for the current period ({Begin} - {End})", fileSourceBegin, end);
+                                return;
                             }
+
                             else
                             {
-                                Logger.LogDebug("File {FilePath} does not exist", filePath);
+                                fileSourceBegin = DateTime.SpecifyKind(fileSource.Begin, DateTimeKind.Utc);
                             }
                         }
-                    }
-                    /* there was an incomplete file, skip the incomplete part 
-                    *
-                    *  begin    CB-FP        CB     FB                        end
-                    *    |--------|-----------|------|--------------------------
-                    *                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                    *                          <skip >
-                    */
-                    else if (fileBegin < end)
-                    {
-                        Logger.LogDebug("Skipping period {FileBegin} to {CurrentBegin}", fileBegin, currentBegin);
-                        currentPeriod = fileBegin - currentBegin;
-                        fileBlock = (int)(currentPeriod.Ticks / samplePeriod.Ticks);
-                    }
 
-                    /* file begin is > end, break loop */
-                    else
-                    {
-                        break;
-                    }
+                        // get next file source
+                        var nextFileSource = fileSourceGroup.FirstOrDefault(current => current.Begin > fileSourceBegin);
 
-                    // update loop state
-                    bufferOffset += fileBlock;
-                    currentBegin += currentPeriod;
-                    consumedPeriod += currentPeriod;
-                    remainingPeriod -= currentPeriod;
+                        var fileSourceEnd = nextFileSource is null
+                            ? end
+                            : new DateTime(Math.Min(end.Ticks, nextFileSource.Begin.Ticks), DateTimeKind.Utc);
+                            
+                        // go!
+                        var fileLength = fileSource.FilePeriod.Ticks / samplePeriod.Ticks;
+                        var bufferOffset = (int)((fileSourceBegin - begin).Ticks / samplePeriod.Ticks);
+                        var currentBegin = fileSourceBegin;
+                        var totalPeriod = fileSourceEnd - fileSourceBegin;
+                        var consumedPeriod = TimeSpan.Zero;
+                        var remainingPeriod = totalPeriod;
+
+                        while (consumedPeriod < totalPeriod)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+
+                            // get file path and begin
+                            (var filePaths, var fileBegin) = await FindFilePathsAsync(currentBegin, fileSource);
+
+                            // determine file begin if not yet done using the first file name returned
+                            if (fileBegin == default)
+                            {
+                                if (!TryGetFileBeginByPath(filePaths.First(), fileSource, out fileBegin, default))
+                                    throw new Exception($"Unable to determine date/time of file {filePaths.First()}.");
+                            }
+
+                            /* CB = Current Begin, FP = File Period
+                            * 
+                            *  begin    CB-FP    FB  CB     FB  CB+FP                 end
+                            *    |--------|-------|---|------|----|-----------|--------|
+                            */
+                            var CB_MINUS_FP = currentBegin - fileSource.FilePeriod;
+                            var CB_PLUS_FP = currentBegin + fileSource.FilePeriod;
+
+                            int fileBlock;
+                            TimeSpan currentPeriod;
+
+                            /* Found file starts too early
+                            *  begin FB CB-FP        CB         CB+FP                 end
+                            *    |----|---|-----------|-----------|-----------|--------|
+                            *     ~~~~~~~~~    
+                            */
+                            if (fileBegin <= CB_MINUS_FP)
+                            {
+                                throw new Exception("This should never happen");
+                            }
+
+                            /* normal case: current begin may be greater than file begin if: 
+                            * - this is the very first iteration
+                            * - the current file begins later than expected (incomplete file)
+                            *  begin    CB-FP    FB  CB         CB+FP                 end
+                            *    |--------|-------|---|-----------|-----------|--------|
+                            *              ~~~~~~~~~~~~
+                            */
+                            else if (fileBegin <= currentBegin)
+                            {
+                                var consumedFilePeriod = currentBegin - fileBegin;
+                                var remainingFilePeriod = fileSource.FilePeriod - consumedFilePeriod;
+
+                                currentPeriod = TimeSpan.FromTicks(Math.Min(remainingFilePeriod.Ticks, remainingPeriod.Ticks));
+                                Logger.LogTrace("Process period {CurrentBegin} to {CurrentEnd}", currentBegin, currentBegin + currentPeriod);
+
+                                fileBlock = (int)(currentPeriod.Ticks / samplePeriod.Ticks);
+
+                                var fileOffset = consumedFilePeriod.Ticks / samplePeriod.Ticks;
+
+                                foreach (var filePath in filePaths)
+                                {
+                                    if (File.Exists(filePath))
+                                    {
+                                        Logger.LogTrace("Process file {FilePath}", filePath);
+
+                                        try
+                                        {
+                                            var readRequests = group.Select(request =>
+                                            {
+                                                var catalogItem = request.CatalogItem;
+                                                var representation = catalogItem.Representation;
+
+                                                var slicedData = request.Data
+                                                    .Slice(bufferOffset * representation.ElementSize, fileBlock * representation.ElementSize);
+
+                                                var slicedStatus = request.Status
+                                                    .Slice(bufferOffset, fileBlock);
+
+                                                var originalName = catalogItem.Resource.Properties?.GetStringValue(StructuredFileDataModelExtensions.OriginalNameKey)!;
+
+                                                return new StructuredFileReadRequest(
+                                                    CatalogItem: request.CatalogItem,
+                                                    Data: slicedData,
+                                                    Status: slicedStatus,
+                                                    OriginalName: originalName
+                                                );
+                                            }).ToArray();
+
+                                            var readInfo = new ReadInfo(
+                                                filePath,
+                                                fileSource,
+                                                fileBegin,
+                                                fileOffset,
+                                                fileBlock,
+                                                fileLength
+                                            );
+
+                                            await ReadAsync(readInfo, readRequests, cancellationToken);
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Logger.LogDebug(ex, "Could not process file {FilePath}", filePath);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Logger.LogDebug("File {FilePath} does not exist", filePath);
+                                    }
+                                }
+                            }
+                            /* there was an incomplete file, skip the incomplete part 
+                            *
+                            *  begin    CB-FP        CB     FB                        end
+                            *    |--------|-----------|------|--------------------------
+                            *                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                            *                          <skip >
+                            */
+                            else if (fileBegin < end)
+                            {
+                                Logger.LogDebug("Skipping period {FileBegin} to {CurrentBegin}", fileBegin, currentBegin);
+                                currentPeriod = fileBegin - currentBegin;
+                                fileBlock = (int)(currentPeriod.Ticks / samplePeriod.Ticks);
+                            }
+
+                            /* file begin is > end, break loop */
+                            else
+                            {
+                                break;
+                            }
+
+                            // update loop state
+                            bufferOffset += fileBlock;
+                            currentBegin += currentPeriod;
+                            consumedPeriod += currentPeriod;
+                            remainingPeriod -= currentPeriod;
+                        }
+
+                        fileSourceBegin += totalPeriod;
+
+                        progress.Report(
+                            (
+                                fileSourceGroupIndex + 
+                                (fileSourceBegin - begin).Ticks / (double)(end - begin).Ticks
+                            ) / fileSourceGroups.Count);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Could not read file source group");
                 }
 
-                fileSourceBegin += totalPeriod;
+                ++fileSourceGroupIndex;
             }
         }
 
         /// <summary>
         /// Reads a dataset from the provided file.
         /// </summary>
-        /// <param name="info">The read information.</param>
+        /// <param name="info">The common read information.</param>
+        /// <param name="readRequests">The array of read requests.</param>
         /// <param name="cancellationToken">A token to cancel the current operation.</param>
         /// <returns>The task.</returns>
-        protected abstract Task
-            ReadSingleAsync(ReadInfo info, CancellationToken cancellationToken);
+        protected abstract Task ReadAsync(
+            ReadInfo info, 
+            StructuredFileReadRequest[] readRequests,
+            CancellationToken cancellationToken);
 
         /// <summary>
         /// Finds files given the date/time and the <see cref="FileSource"/>.
@@ -482,8 +533,7 @@ namespace Nexus.Sources
         /// <param name="fileSource">The file source.</param>
         /// <returns>A tuple of file names and date/times.</returns>
         /// <exception cref="ArgumentException">Thrown when the begin value does not have its kind property set.</exception>
-        protected virtual Task<(string[], DateTime)> 
-            FindFilePathsAsync(DateTime begin, FileSource fileSource)
+        protected virtual Task<(string[], DateTime)> FindFilePathsAsync(DateTime begin, FileSource fileSource)
         {
             // This implementation assumes that the file start times are aligned to multiples
             // of the file period. Depending on the file template, it is possible to find more
@@ -539,13 +589,12 @@ namespace Nexus.Sources
         /// <returns>True when a file was found, false otherwise.</returns>
         protected bool TryGetFirstFile(FileSource fileSource, [NotNullWhen(true)] out string? filePath)
         {
-            filePath = StructuredFileDataSource
-                .GetCandidateFiles(
-                    Root,
-                    DateTime.MinValue,
-                    DateTime.MinValue,
-                    fileSource,
-                    CancellationToken.None)
+            filePath = GetCandidateFiles(
+                        Root,
+                        DateTime.MinValue,
+                        DateTime.MinValue,
+                        fileSource,
+                        CancellationToken.None)
                 .Select(file => file.FilePath)
                 .FirstOrDefault();
 
@@ -556,8 +605,10 @@ namespace Nexus.Sources
 
         #region Public API as seen by Nexus and unit tests
 
-        async Task 
-            IDataSource.SetContextAsync(DataSourceContext context, ILogger logger, CancellationToken cancellationToken)
+        async Task IDataSource.SetContextAsync(
+            DataSourceContext context, 
+            ILogger logger, 
+            CancellationToken cancellationToken)
         {
             if (context.ResourceLocator is null)
                 throw new Exception("The resource locator parameter is required.");
@@ -570,14 +621,16 @@ namespace Nexus.Sources
             FileSourceProvider = await GetFileSourceProviderAsync(cancellationToken);
         }
 
-        Task<CatalogRegistration[]>
-           IDataSource.GetCatalogRegistrationsAsync(string path, CancellationToken cancellationToken)
+        Task<CatalogRegistration[]> IDataSource.GetCatalogRegistrationsAsync(
+            string path, 
+            CancellationToken cancellationToken)
         {
             return GetCatalogRegistrationsAsync(path, cancellationToken);
         }
 
-        async Task<ResourceCatalog> 
-            IDataSource.GetCatalogAsync(string catalogId, CancellationToken cancellationToken)
+        async Task<ResourceCatalog> IDataSource.GetCatalogAsync(
+            string catalogId, 
+            CancellationToken cancellationToken)
         {
             var catalog = await GetCatalogAsync(catalogId, cancellationToken);
 
@@ -602,20 +655,29 @@ namespace Nexus.Sources
             return catalog;
         }
 
-        Task<(DateTime Begin, DateTime End)> 
-            IDataSource.GetTimeRangeAsync(string catalogId, CancellationToken cancellationToken)
+        Task<(DateTime Begin, DateTime End)> IDataSource.GetTimeRangeAsync(
+            string catalogId, 
+            CancellationToken cancellationToken)
         {
             return GetTimeRangeAsync(catalogId, cancellationToken);
         }
 
-        Task<double> 
-            IDataSource.GetAvailabilityAsync(string catalogId, DateTime begin, DateTime end, CancellationToken cancellationToken)
+        Task<double> IDataSource.GetAvailabilityAsync(
+            string catalogId, 
+            DateTime begin, 
+            DateTime end, 
+            CancellationToken cancellationToken)
         {
             return GetAvailabilityAsync(catalogId, begin, end, cancellationToken);
         }
 
-        async Task
-            IDataSource.ReadAsync(DateTime begin, DateTime end, ReadRequest[] requests, ReadDataHandler readData, IProgress<double> progress, CancellationToken cancellationToken)
+        async Task IDataSource.ReadAsync(
+            DateTime begin, 
+            DateTime end, 
+            ReadRequest[] requests, 
+            ReadDataHandler readData, 
+            IProgress<double> progress, 
+            CancellationToken cancellationToken)
         {
             if (begin >= end)
                 throw new ArgumentException("The start time must be before the end time.");
@@ -623,27 +685,15 @@ namespace Nexus.Sources
             EnsureUtc(begin);
             EnsureUtc(end);
 
-            var counter = 0.0;
+            Logger.LogDebug("Read catalog items");
 
-            foreach (var (catalogItem, dataBuffer, statusBuffer) in requests)
+            try
             {
-                using var scope = Logger.BeginScope(new Dictionary<string, object>()
-                {
-                    ["ResourcePath"] = catalogItem.ToPath()
-                });
-
-                Logger.LogDebug("Read catalog item");
-
-                try
-                {
-                    await ReadSingleAsync(catalogItem, begin, end, dataBuffer, statusBuffer, cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "Could not read catalog item");
-                }
-
-                progress.Report(++counter / requests.Length);
+                await ReadAsync(begin, end, requests, progress, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Could not read catalog items");
             }
         }
 
@@ -651,8 +701,12 @@ namespace Nexus.Sources
 
         #region Helpers
 
-        private static IEnumerable<(string FilePath, DateTime DateTime)> 
-            GetCandidateFiles(string rootPath, DateTime begin, DateTime end, FileSource fileSource, CancellationToken cancellationToken)
+        private static IEnumerable<(string FilePath, DateTime DateTime)> GetCandidateFiles(
+            string rootPath, 
+            DateTime begin, 
+            DateTime end, 
+            FileSource fileSource, 
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -683,8 +737,13 @@ namespace Nexus.Sources
             });
         }
 
-        private static IEnumerable<(string FolderPath, DateTime DateTime)> 
-            GetCandidateFolders(string root, DateTime rootDate, DateTime begin, DateTime end, string[] pathSegments, CancellationToken cancellationToken)
+        private static IEnumerable<(string FolderPath, DateTime DateTime)> GetCandidateFolders(
+            string root, 
+            DateTime rootDate, 
+            DateTime begin, 
+            DateTime end, 
+            string[] pathSegments, 
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -743,7 +802,7 @@ namespace Nexus.Sources
             if (pathSegments.Length > 1)
             {
                 return folderCandidates.SelectMany(current =>
-                    StructuredFileDataSource.GetCandidateFolders(
+                    GetCandidateFolders(
                         current.Key,
                         current.Value,
                         begin,
@@ -761,8 +820,12 @@ namespace Nexus.Sources
             }
         }
 
-        private static IEnumerable<(string Key, DateTime Value)> 
-            FilterBySearchDate(DateTime begin, DateTime end, Dictionary<string, DateTime> folderNameToDateTimeMap, string expectedSegmentName)
+        private static IEnumerable<(string Key, DateTime Value)> FilterBySearchDate(
+            DateTime begin, 
+            DateTime end, 
+            Dictionary<string, DateTime> 
+            folderNameToDateTimeMap, 
+            string expectedSegmentName)
         {
             if (begin == DateTime.MinValue && end == DateTime.MinValue)
             {
@@ -802,8 +865,11 @@ namespace Nexus.Sources
             }
         }
 
-        private static bool 
-            TryGetFileBeginByPath(string filePath, FileSource fileSource, out DateTime fileBegin, DateTime folderBegin = default)
+        private static bool TryGetFileBeginByPath(
+            string filePath, 
+            FileSource fileSource, 
+            out DateTime fileBegin, 
+            DateTime folderBegin = default)
         {
             var fileName = Path.GetFileName(filePath);
 
@@ -873,8 +939,10 @@ namespace Nexus.Sources
             }
         }
 
-        private static bool 
-            TryGetFileBeginByName(string fileName, FileSource fileSource, out DateTime fileBegin)
+        private static bool TryGetFileBeginByName(
+            string fileName, 
+            FileSource fileSource, 
+            out DateTime fileBegin)
         {
             /* (1) Regex is required in scenarios when there are more complex
              * file names, i.e. file names containing an opaque string that
