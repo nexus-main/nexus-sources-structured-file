@@ -1,4 +1,4 @@
-## v2.0.0-beta.4 - 2023-07-21
+## v2.0.0-beta.5 - 2023-07-21
 
 - Fixed a local time zone bug.
 
