@@ -1,5 +1,9 @@
 ## v2.0.0-beta.4 - 2023-07-21
 
+- Fixed a local time zone bug.
+
+## v2.0.0-beta.4 - 2023-07-21
+
 - Fixed UTC offset issues with file names without time part.
 
 ## v2.0.0-beta.3 - 2023-07-12

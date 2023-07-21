@@ -540,25 +540,25 @@ namespace Nexus.Sources
             // 2020-01-01T00-00-00Z_v2.dat (contains data from time t0 + x to next midnight)
             // Where x is the time period the system was offline to apply the new version.
 
-            var roundedBegin = begin.RoundDown(fileSource.FilePeriod);
-
-            var localBegin = roundedBegin.Kind switch
+            var localBegin = begin.Kind switch
             {
-                DateTimeKind.Local => roundedBegin,
-                DateTimeKind.Utc => DateTime.SpecifyKind(roundedBegin.Add(fileSource.UtcOffset), DateTimeKind.Local),
+                DateTimeKind.Local => begin,
+                DateTimeKind.Utc => DateTime.SpecifyKind(begin.Add(fileSource.UtcOffset), DateTimeKind.Local),
                 _ => throw new ArgumentException("The begin parameter must have its kind property specified.")
             };
 
+            var roundedLocalBegin = begin.RoundDown(fileSource.FilePeriod);
+
             var folderNames = fileSource
                 .PathSegments
-                .Select(segment => localBegin.ToString(segment));
+                .Select(roundedLocalBegin.ToString);
 
             var folderNameArray = new List<string>() { Root }
                 .Concat(folderNames)
                 .ToArray();
 
             var folderPath = Path.Combine(folderNameArray);
-            var fileName = localBegin.ToString(fileSource.FileTemplate);
+            var fileName = roundedLocalBegin.ToString(fileSource.FileTemplate);
 
             string[] filePaths;
 
