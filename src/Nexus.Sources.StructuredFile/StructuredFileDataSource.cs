@@ -229,12 +229,10 @@ namespace Nexus.Sources
 
                             cancellationToken.ThrowIfCancellationRequested();
 
-                            var localBegin = begin.Add(fileSource.UtcOffset);
-                            var localEnd = end.Add(fileSource.UtcOffset);
-                            var candidateFiles = GetCandidateFiles(Root, localBegin, localEnd, fileSource, cancellationToken);
+                            var candidateFiles = GetCandidateFiles(Root, begin, end, fileSource, cancellationToken);
 
                             var files = candidateFiles
-                                .Where(current => localBegin <= current.DateTime && current.DateTime < localEnd)
+                                .Where(current => begin <= current.DateTime && current.DateTime < end)
                                 .ToList();
 
                             var availabilityTasks = files.Select(file =>
@@ -368,15 +366,12 @@ namespace Nexus.Sources
                         {
                             cancellationToken.ThrowIfCancellationRequested();
 
-                            // get file path and begin
-                            (var filePaths, var fileBegin) = await FindFilePathsAsync(currentBegin, fileSource);
+                            // get file paths
+                            var filePaths = await FindFilePathsAsync(currentBegin, fileSource);
 
-                            // determine file begin if not yet done using the first file name returned
-                            if (fileBegin == default)
-                            {
-                                if (!TryGetFileBeginByPath(filePaths.First(), fileSource, out fileBegin, default))
-                                    throw new Exception($"Unable to determine date/time of file {filePaths.First()}.");
-                            }
+                            // determine file begin
+                            if (!TryGetFileBeginByPath(filePaths.First(), fileSource, out var fileBegin, default))
+                                throw new Exception($"Unable to determine date/time of file {filePaths.First()}.");
 
                             /* CB = Current Begin, FP = File Period
                             * 
@@ -533,7 +528,7 @@ namespace Nexus.Sources
         /// <param name="fileSource">The file source.</param>
         /// <returns>A tuple of file names and date/times.</returns>
         /// <exception cref="ArgumentException">Thrown when the begin value does not have its kind property set.</exception>
-        protected virtual Task<(string[], DateTime)> FindFilePathsAsync(DateTime begin, FileSource fileSource)
+        protected virtual Task<string[]> FindFilePathsAsync(DateTime begin, FileSource fileSource)
         {
             // This implementation assumes that the file start times are aligned to multiples
             // of the file period. Depending on the file template, it is possible to find more
@@ -578,7 +573,7 @@ namespace Nexus.Sources
                 filePaths = new string[] { Path.Combine(folderPath, fileName) };
             }
 
-            return Task.FromResult((filePaths, roundedBegin));
+            return Task.FromResult(filePaths);
         }
 
         /// <summary>
@@ -872,6 +867,7 @@ namespace Nexus.Sources
             DateTime folderBegin = default)
         {
             var fileName = Path.GetFileName(filePath);
+            bool isSuccess;
 
             if (TryGetFileBeginByName(fileName, fileSource, out fileBegin))
             {
@@ -881,7 +877,7 @@ namespace Nexus.Sources
                 // date+time: use file date/time
                 if (fileBegin.Date != default)
                 {
-                    return true;
+                    isSuccess = true;
                 }
 
                 // time-only: use combined folder and file date/time
@@ -891,7 +887,7 @@ namespace Nexus.Sources
                     if (folderBegin != default)
                     {
                         fileBegin = new DateTime(folderBegin.Date.Ticks + fileBegin.TimeOfDay.Ticks, fileBegin.Kind);
-                        return true;
+                        isSuccess = true;
                     }
 
                     // long way
@@ -922,21 +918,27 @@ namespace Nexus.Sources
                         }
 
                         fileBegin = folderBegin;
-                        return fileBegin != default;
+                        isSuccess = fileBegin != default;
                     }
                 }
                 // default: use folder date/time
                 else
                 {
                     fileBegin = folderBegin;
-                    return fileBegin != default;
+                    isSuccess = fileBegin != default;
                 }
             }
+
             // no date + no time: failed
             else
             {
-                return false;
+                isSuccess = false;
             }
+
+            if (isSuccess)
+                fileBegin = AdjustToUtc(fileBegin, fileSource.UtcOffset);
+
+            return isSuccess;
         }
 
         private static bool TryGetFileBeginByName(

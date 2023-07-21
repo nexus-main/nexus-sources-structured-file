@@ -5,22 +5,6 @@ namespace Nexus.Sources.Tests
 {
     public class StructuredFileDataSourceTester : StructuredFileDataSource
     {
-        #region Fields
-
-        private readonly bool _overrideFindFilePathsWithNoDateTime;
-
-        #endregion
-
-        #region Constructors
-
-        public StructuredFileDataSourceTester(
-            bool overrideFindFilePathsWithNoDateTime = false)
-        {
-            _overrideFindFilePathsWithNoDateTime = overrideFindFilePathsWithNoDateTime;
-        }
-
-        #endregion
-
         #region Properties
 
         public Dictionary<string, Dictionary<string, IReadOnlyList<FileSource>>> Config { get; private set; } = default!;
@@ -83,19 +67,6 @@ namespace Nexus.Sources.Tests
                     .Status
                     .Span
                     .Fill(1);
-            }
-        }
-
-        protected override async Task<(string[], DateTime)> FindFilePathsAsync(DateTime begin, FileSource config)
-        {
-            if (_overrideFindFilePathsWithNoDateTime)
-            {
-                var result = await base.FindFilePathsAsync(begin, config);
-                return (result.Item1, default);
-            }
-            else
-            {
-                return await base.FindFilePathsAsync(begin, config);
             }
         }
 

@@ -119,12 +119,10 @@ namespace Nexus.Sources.Tests
                 dataSource!.GetAvailabilityAsync("/A/B/C", begin, end, CancellationToken.None));
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public async Task CanReadSingle(bool overrideFindFilePathsWithNoDateTime)
+        [Fact]
+        public async Task CanReadSingle()
         {
-            var dataSource = new StructuredFileDataSourceTester(overrideFindFilePathsWithNoDateTime) as IDataSource;
+            var dataSource = new StructuredFileDataSourceTester() as IDataSource;
 
             var context = new DataSourceContext(
                 ResourceLocator: new Uri(Path.Combine(Directory.GetCurrentDirectory(), "DATABASES/TESTDATA")),
