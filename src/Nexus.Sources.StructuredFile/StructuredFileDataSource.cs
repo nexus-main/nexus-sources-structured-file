@@ -547,7 +547,7 @@ namespace Nexus.Sources
                 _ => throw new ArgumentException("The begin parameter must have its kind property specified.")
             };
 
-            var roundedLocalBegin = begin.RoundDown(fileSource.FilePeriod);
+            var roundedLocalBegin = localBegin.RoundDown(fileSource.FilePeriod);
 
             var folderNames = fileSource
                 .PathSegments
