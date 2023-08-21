@@ -3,7 +3,7 @@
     "default": [{
       "PathSegments": [
         "'DATA'",
-        "'prefix_'dd-MM-yyyy_HH"
+        "'prefix_'dd-MM-yyyy"
       ],
       "FileTemplate": "HH-mm-ss'.dat'",
       "FilePeriod": "00:00:01",

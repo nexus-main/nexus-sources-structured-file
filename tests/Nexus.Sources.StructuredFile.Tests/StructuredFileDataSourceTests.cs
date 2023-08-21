@@ -4,6 +4,7 @@ using Nexus.Extensibility;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using Xunit;
 
 namespace Nexus.Sources.Tests
@@ -103,6 +104,35 @@ namespace Nexus.Sources.Tests
             var actual = await dataSource!.GetAvailabilityAsync("/A/B/C", begin, end, CancellationToken.None);
 
             Assert.Equal(expected, actual, precision);
+        }
+
+        [Theory]
+        [InlineData("A", "calibrated", "DATA/calibrated/2019-12/2019-12-31/2019-12-31_12-00-00.dat", "2019-12-31T12-00-00Z")]
+        [InlineData("B", "calibrated", "DATA/2019-12/calibrated/2019-12-31/2019-12-31_12-00-00.dat", "2019-12-31T12-00-00Z")]
+        [InlineData("C", "default", "DATA/2019-12-31/__0_2019-12-31_12-00-00_000000.dat", "2019-12-31T12-00-00Z")]
+        [InlineData("D", "position_A", "DATA/position_A/__0_2019-12-31_12-00-00_000000.dat", "2019-12-31T10-00-00Z")]
+        [InlineData("E", "real_time", "DATA/2019-12/prefix_real_time_data_2019-12-31_12-00-00.dat", "2019-12-31T12-00-00Z")]
+        [InlineData("F", "default", "DATA/2019-12/20191231_12_x_0000.dat", "2019-12-31T12-00-00Z")]
+        [InlineData("G", "default", "DATA/prefix_01-01-2020/00-40-22.dat", "2020-01-01T00-40-22Z")]
+        [InlineData("H", "default", "2019-12-31_12-00-00.dat", "2019-12-31T12-00-00Z")]
+        [InlineData("I", "default", "DATA/2019-12-31_23-55-00/data.dat", "2019-12-31T23-55-00Z")]
+        [InlineData("J", "default", "DATA1/2020_01_01.dat", "2020-01-01T00-00-00Z")]
+        public void CanGetFileBeginByPath(string database, string key, string filePath, string expectedFileBeginString)
+        {
+            // Arrange
+            var expectedFileBegin = DateTime.ParseExact(expectedFileBeginString, "yyyy-MM-ddTHH-mm-ssZ", default, DateTimeStyles.AdjustToUniversal);
+            var configFilePath = $"DATABASES/{database}/config.json";
+            var configJson = File.ReadAllText(configFilePath);
+            var config = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, IReadOnlyList<FileSource>>>>(configJson)!;
+            var fileSource = config["/A/B/C"][key][0];
+            var fullFilePath = Path.Combine($"DATABASES/{database}", filePath);
+
+            // Act
+            var success = StructuredFileDataSource.TryGetFileBeginByPath(fullFilePath, fileSource, out var fileBegin, folderBegin: default);
+
+            // Assert
+            Assert.True(success);
+            Assert.Equal(expectedFileBegin, fileBegin);
         }
 
         [Theory]

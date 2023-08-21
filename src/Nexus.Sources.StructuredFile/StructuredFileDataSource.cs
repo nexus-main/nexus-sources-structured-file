@@ -370,7 +370,7 @@ namespace Nexus.Sources
                             var filePaths = await FindFilePathsAsync(currentBegin, fileSource);
 
                             // determine file begin
-                            if (!TryGetFileBeginByPath(filePaths.First(), fileSource, out var fileBegin, default))
+                            if (!TryGetFileBeginByPath(filePaths.First(), fileSource, out var fileBegin, folderBegin: default))
                                 throw new Exception($"Unable to determine date/time of file {filePaths.First()}.");
 
                             /* CB = Current Begin, FP = File Period
@@ -721,7 +721,7 @@ namespace Nexus.Sources
                 var candidateFiles = filePaths
                     .Select(filePath =>
                     {
-                        var success = TryGetFileBeginByPath(filePath, fileSource, out var fileBegin, currentFolder.DateTime);
+                        var success = TryGetFileBeginByPath(filePath, fileSource, out var fileBegin, folderBegin: currentFolder.DateTime);
 
                         return (success, filePath, fileBegin);
                     })
@@ -860,7 +860,7 @@ namespace Nexus.Sources
             }
         }
 
-        private static bool TryGetFileBeginByPath(
+        internal static bool TryGetFileBeginByPath(
             string filePath, 
             FileSource fileSource, 
             out DateTime fileBegin, 
@@ -893,39 +893,31 @@ namespace Nexus.Sources
                     // long way
                     else
                     {
-                        var pathSegments = filePath
-                            .Split('/', '\\');
+                        folderBegin = GetFolderBegin(filePath, fileSource);
 
-                        pathSegments = pathSegments
-                            .Skip(pathSegments.Length - fileSource.PathSegments.Length)
-                            .ToArray();
-
-                        for (int i = 0; i < pathSegments.Length; i++)
-                        {
-                            var folderName = pathSegments[i];
-                            var folderTemplate = fileSource.PathSegments[i];
-
-                            var _ = DateTime.TryParseExact(
-                                folderName,
-                                folderTemplate,
-                                default,
-                                DateTimeStyles.NoCurrentDateDefault | DateTimeStyles.AdjustToUniversal,
-                                out var currentFolderBegin
-                            );
-
-                            if (currentFolderBegin > folderBegin)
-                                folderBegin = currentFolderBegin;
-                        }
-
-                        fileBegin = folderBegin;
-                        isSuccess = fileBegin != default;
+                        fileBegin = folderBegin + fileBegin.TimeOfDay;
+                        isSuccess = folderBegin != default;
                     }
                 }
+
                 // default: use folder date/time
                 else
                 {
-                    fileBegin = folderBegin;
-                    isSuccess = fileBegin != default;
+                    // short cut
+                    if (folderBegin != default)
+                    {
+                        fileBegin = folderBegin;
+                        isSuccess = true;
+                    }
+
+                    // long way
+                    else
+                    {
+                        folderBegin = GetFolderBegin(filePath, fileSource);
+
+                        fileBegin = folderBegin;
+                        isSuccess = folderBegin != default;
+                    }
                 }
             }
 
@@ -939,6 +931,38 @@ namespace Nexus.Sources
                 fileBegin = AdjustToUtc(fileBegin, fileSource.UtcOffset);
 
             return isSuccess;
+        }
+
+        private static DateTime GetFolderBegin(string filePath, FileSource fileSource)
+        {
+            var folderBegin = default(DateTime);
+
+            var pathSegments = filePath
+                            .Split('/', '\\');
+
+            pathSegments = pathSegments
+                .Skip(pathSegments.Length - fileSource.PathSegments.Length - 1)
+                .Take(fileSource.PathSegments.Length)
+                .ToArray();
+
+            for (int i = 0; i < pathSegments.Length; i++)
+            {
+                var folderName = pathSegments[i];
+                var folderTemplate = fileSource.PathSegments[i];
+
+                var _ = DateTime.TryParseExact(
+                    folderName,
+                    folderTemplate,
+                    default,
+                    DateTimeStyles.NoCurrentDateDefault | DateTimeStyles.AdjustToUniversal,
+                    out var currentFolderBegin
+                );
+
+                if (currentFolderBegin > folderBegin)
+                    folderBegin = currentFolderBegin;
+            }
+
+            return folderBegin;
         }
 
         private static bool TryGetFileBeginByName(

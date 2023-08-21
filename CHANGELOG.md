@@ -1,3 +1,7 @@
+## v2.0.0-beta.7 - 2023-08-21
+
+- Add more tests, fix path to timestamp algorithm bugs.
+
 ## v2.0.0-beta.6 - 2023-07-21
 
 - Fixed a local time zone bug.
