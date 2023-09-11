@@ -453,6 +453,10 @@ namespace Nexus.Sources
 
                                             await ReadAsync(readInfo, readRequests, cancellationToken);
                                         }
+                                        catch (OutOfMemoryException)
+                                        {
+                                            throw;
+                                        }
                                         catch (Exception ex)
                                         {
                                             Logger.LogDebug(ex, "Could not process file {FilePath}", filePath);
@@ -499,6 +503,10 @@ namespace Nexus.Sources
                                 (fileSourceBegin - begin).Ticks / (double)(end - begin).Ticks
                             ) / fileSourceGroups.Count);
                     }
+                }
+                catch (OutOfMemoryException)
+                {
+                    throw;
                 }
                 catch (Exception ex)
                 {
@@ -685,6 +693,10 @@ namespace Nexus.Sources
             try
             {
                 await ReadAsync(begin, end, requests, progress, cancellationToken);
+            }
+            catch (OutOfMemoryException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
