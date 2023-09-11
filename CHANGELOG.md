@@ -1,3 +1,7 @@
+## v2.0.0-beta.12 - 2023-09-11
+
+- Update Nexus.Extensibility dependency.
+
 ## v2.0.0-beta.11 - 2023-09-11
 
 - Improve folder begin detection.
