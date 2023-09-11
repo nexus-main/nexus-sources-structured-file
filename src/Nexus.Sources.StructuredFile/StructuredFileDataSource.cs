@@ -721,7 +721,7 @@ namespace Nexus.Sources
 
             // get all candidate folders
             var candidateFolders = fileSource.PathSegments.Length >= 1
-                ? GetCandidateFolders(rootPath, default, begin, end, fileSource.PathSegments, cancellationToken)
+                ? GetCandidateFolders(rootPath, default, begin, end, fileSource, fileSource.PathSegments, cancellationToken)
                 : new List<(string, DateTime)>() { (rootPath, default) };
 
             return candidateFolders.SelectMany(currentFolder =>
@@ -747,6 +747,7 @@ namespace Nexus.Sources
             DateTime rootDate, 
             DateTime begin, 
             DateTime end, 
+            FileSource fileSource,
             string[] pathSegments, 
             CancellationToken cancellationToken)
         {
@@ -770,7 +771,7 @@ namespace Nexus.Sources
                             folderName,
                             pathSegments.First(),
                             default,
-                            DateTimeStyles.NoCurrentDateDefault | DateTimeStyles.AdjustToUniversal,
+                            DateTimeStyles.NoCurrentDateDefault,
                             out var parsedDateTime
                         );
 
@@ -779,6 +780,8 @@ namespace Nexus.Sources
 
                     else
                         hasDateTimeInformation = true;
+
+                    parsedDateTime = AdjustToUtc(parsedDateTime, fileSource.UtcOffset);
 
                     return (folderPath, parsedDateTime);
                 })
@@ -812,6 +815,7 @@ namespace Nexus.Sources
                         current.Value,
                         begin,
                         end,
+                        fileSource,
                         pathSegments.Skip(1).ToArray(), 
                         cancellationToken
                     )
@@ -856,7 +860,7 @@ namespace Nexus.Sources
                     .Where(entry =>
                     {
                         // Check for the case that the parsed date/time
-                        // (1) is more specific (2020-01-01T22) than the search time range (2020-01-01T00 - 2021-01-02T00):
+                        // (1) is more specific (2020-01-01T22) than the search time range (2020-01-01T00 - 2021-01-02T00)
                         // (2) is less specific but in-between (2020-02) the search time range (2020-01-01 - 2021-03-01)
                         if (begin <= entry.Value && entry.Value < end)
                             return true;
@@ -879,9 +883,9 @@ namespace Nexus.Sources
             var fileName = Path.GetFileName(filePath);
             bool isSuccess;
 
-            if (TryGetFileBeginByName(fileName, fileSource, out fileBegin))
+            if (TryGetFileBeginByName_AnyKind(fileName, fileSource, out fileBegin))
             {
-                // When TryGetFileBeginByName == true, then the input string was parsed successfully and the
+                // When TryGetFileBeginByName_AnyKind == true, then the input string was parsed successfully and the
                 // result contains date/time information of either kind: date+time, time-only, default.
 
                 // date+time: use file date/time
@@ -903,7 +907,7 @@ namespace Nexus.Sources
                     // long way
                     else
                     {
-                        folderBegin = GetFolderBegin(filePath, fileSource);
+                        folderBegin = GetFolderBegin_AnyKind(filePath, fileSource);
 
                         fileBegin = folderBegin + fileBegin.TimeOfDay;
                         isSuccess = folderBegin != default;
@@ -923,7 +927,7 @@ namespace Nexus.Sources
                     // long way
                     else
                     {
-                        folderBegin = GetFolderBegin(filePath, fileSource);
+                        folderBegin = GetFolderBegin_AnyKind(filePath, fileSource);
 
                         fileBegin = folderBegin;
                         isSuccess = folderBegin != default;
@@ -943,7 +947,7 @@ namespace Nexus.Sources
             return isSuccess;
         }
 
-        private static DateTime GetFolderBegin(string filePath, FileSource fileSource)
+        private static DateTime GetFolderBegin_AnyKind(string filePath, FileSource fileSource)
         {
             var folderBegin = default(DateTime);
 
@@ -964,7 +968,7 @@ namespace Nexus.Sources
                     folderName,
                     folderTemplate,
                     default,
-                    DateTimeStyles.NoCurrentDateDefault | DateTimeStyles.AdjustToUniversal,
+                    DateTimeStyles.NoCurrentDateDefault,
                     out var currentFolderBegin
                 );
 
@@ -975,7 +979,7 @@ namespace Nexus.Sources
             return folderBegin;
         }
 
-        private static bool TryGetFileBeginByName(
+        private static bool TryGetFileBeginByName_AnyKind(
             string fileName, 
             FileSource fileSource, 
             out DateTime fileBegin)
@@ -1013,7 +1017,7 @@ namespace Nexus.Sources
                 fileName,
                 fileTemplate,
                 default,
-                DateTimeStyles.NoCurrentDateDefault | DateTimeStyles.AdjustToUniversal,
+                DateTimeStyles.NoCurrentDateDefault,
                 out fileBegin
             );
 

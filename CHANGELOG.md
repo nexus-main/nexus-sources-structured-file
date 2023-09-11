@@ -1,3 +1,7 @@
+## v2.0.0-beta.11 - 2023-09-11
+
+- Improve folder begin detection.
+
 ## v2.0.0-beta.10 - 2023-09-11
 
 - Improve file begin detection.
