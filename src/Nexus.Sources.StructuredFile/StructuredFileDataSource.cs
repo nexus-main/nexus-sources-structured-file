@@ -367,33 +367,8 @@ namespace Nexus.Sources
                         {
                             cancellationToken.ThrowIfCancellationRequested();
 
-                            // get file paths
-                            var filePaths = await FindFilePathsAsync(currentBegin, fileSource);
-
-                            // determine file begin
-                            DateTime fileBegin;
-
-                            if (filePaths.Any())
-                            {
-                                if (!TryGetFileBeginByPath(filePaths.First(), fileSource, out fileBegin, folderBegin: default))
-                                    throw new Exception($"Unable to determine date/time of file {filePaths.First()}.");
-                            }
-
-                            else
-                            {
-                                // TODO: Test this code path
-                                // determine begin of missing file
-                                var localBegin = begin.Kind switch
-                                {
-                                    DateTimeKind.Local => begin,
-                                    DateTimeKind.Utc => DateTime.SpecifyKind(begin.Add(fileSource.UtcOffset), DateTimeKind.Local),
-                                    _ => throw new ArgumentException("The begin parameter must have its kind property specified.")
-                                };
-
-                                var roundedLocalBegin = localBegin.RoundDown(fileSource.FilePeriod);
-
-                                fileBegin = AdjustToUtc(roundedLocalBegin, fileSource.UtcOffset);
-                            }
+                            // get file begin and paths
+                            var (fileBegin, filePaths) = await FindFileBeginAndPathsAsync(currentBegin, fileSource);
 
                             /* CB = Current Begin, FP = File Period
                             * 
@@ -554,11 +529,11 @@ namespace Nexus.Sources
         /// <summary>
         /// Finds files given the date/time and the <see cref="FileSource"/>.
         /// </summary>
-        /// <param name="begin">The file begin.</param>
+        /// <param name="begin">The begin date/time (UTC).</param>
         /// <param name="fileSource">The file source.</param>
-        /// <returns>A tuple of file names and date/times.</returns>
+        /// <returns>The calculated file begin (UTC) and a list of found files with that file begin.</returns>
         /// <exception cref="ArgumentException">Thrown when the begin value does not have its kind property set.</exception>
-        protected virtual Task<string[]> FindFilePathsAsync(DateTime begin, FileSource fileSource)
+        protected virtual Task<(DateTime, string[])> FindFileBeginAndPathsAsync(DateTime begin, FileSource fileSource)
         {
             // This implementation assumes that the file start times are aligned to multiples
             // of the file period. Depending on the file template, it is possible to find more
@@ -570,25 +545,22 @@ namespace Nexus.Sources
             // 2020-01-01T00-00-00Z_v2.dat (contains data from time t0 + x to next midnight)
             // Where x is the time period the system was offline to apply the new version.
 
-            var localBegin = begin.Kind switch
-            {
-                DateTimeKind.Local => begin,
-                DateTimeKind.Utc => DateTime.SpecifyKind(begin.Add(fileSource.UtcOffset), DateTimeKind.Local),
-                _ => throw new ArgumentException("The begin parameter must have its kind property specified.")
-            };
+            var localBegin = begin.Kind == DateTimeKind.Utc
+                ? DateTime.SpecifyKind(begin.Add(fileSource.UtcOffset), DateTimeKind.Local)
+                : throw new ArgumentException("The begin parameter must of kind UTC.");
 
-            var roundedLocalBegin = localBegin.RoundDown(fileSource.FilePeriod);
+            var localFileBegin = localBegin.RoundDown(fileSource.FilePeriod);
 
             var folderNames = fileSource
                 .PathSegments
-                .Select(roundedLocalBegin.ToString);
+                .Select(localFileBegin.ToString);
 
             var folderNameArray = new List<string>() { Root }
                 .Concat(folderNames)
                 .ToArray();
 
             var folderPath = Path.Combine(folderNameArray);
-            var fileName = roundedLocalBegin.ToString(fileSource.FileTemplate);
+            var fileName = localFileBegin.ToString(fileSource.FileTemplate);
 
             string[] filePaths;
 
@@ -598,12 +570,15 @@ namespace Nexus.Sources
                    .EnumerateFiles(folderPath, fileName)
                    .ToArray();
             }
+
             else
             {
                 filePaths = new string[] { Path.Combine(folderPath, fileName) };
             }
 
-            return Task.FromResult(filePaths);
+            var utcFileBegin = AdjustToUtc(localFileBegin, fileSource.UtcOffset);
+
+            return Task.FromResult((utcFileBegin, filePaths));
         }
 
         /// <summary>
@@ -620,6 +595,7 @@ namespace Nexus.Sources
                         DateTime.MinValue,
                         fileSource,
                         CancellationToken.None)
+                .OrderBy(file => file.DateTime)
                 .Select(file => file.FilePath)
                 .FirstOrDefault();
 
