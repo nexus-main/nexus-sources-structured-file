@@ -1,3 +1,3 @@
 # Nexus.Sources.StructureFile
 
-This data source extension makes a base class available to simplify reading strcutured data files into Nexus.
+This data source extension makes a base class available to simplify reading structured data files into Nexus.

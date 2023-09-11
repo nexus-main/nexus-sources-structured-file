@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Description>This package makes a base class available to simplify reading strcutured data files into Nexus.</Description>
+    <Description>This package makes a base class available to simplify reading structured data files into Nexus.</Description>
 	  <PackageTags>Nexus remoting time-series data lake</PackageTags>
     <!-- <PackageIcon>icon.png</PackageIcon> -->
     <PackageReadmeFile>README.md</PackageReadmeFile>
