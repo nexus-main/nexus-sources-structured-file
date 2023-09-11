@@ -1,3 +1,7 @@
+## v2.0.0-beta.8 - 2023-09-11
+
+- Do not catch OutOfMemory Exceptions.
+
 ## v2.0.0-beta.7 - 2023-08-21
 
 - Add more tests, fix path to timestamp algorithm bugs.
