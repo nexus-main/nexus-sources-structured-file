@@ -1,3 +1,7 @@
+## v2.0.0-beta.9 - 2023-09-11
+
+- Minor bug fix.
+
 ## v2.0.0-beta.8 - 2023-09-11
 
 - Do not catch OutOfMemory Exceptions.

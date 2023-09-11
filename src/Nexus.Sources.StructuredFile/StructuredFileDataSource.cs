@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Nexus.DataModel;
@@ -370,8 +371,29 @@ namespace Nexus.Sources
                             var filePaths = await FindFilePathsAsync(currentBegin, fileSource);
 
                             // determine file begin
-                            if (!TryGetFileBeginByPath(filePaths.First(), fileSource, out var fileBegin, folderBegin: default))
-                                throw new Exception($"Unable to determine date/time of file {filePaths.First()}.");
+                            DateTime fileBegin;
+
+                            if (filePaths.Any())
+                            {
+                                if (!TryGetFileBeginByPath(filePaths.First(), fileSource, out fileBegin, folderBegin: default))
+                                    throw new Exception($"Unable to determine date/time of file {filePaths.First()}.");
+                            }
+
+                            else
+                            {
+                                // TODO: Test this code path
+                                // determine begin of missing file
+                                var localBegin = begin.Kind switch
+                                {
+                                    DateTimeKind.Local => begin,
+                                    DateTimeKind.Utc => DateTime.SpecifyKind(begin.Add(fileSource.UtcOffset), DateTimeKind.Local),
+                                    _ => throw new ArgumentException("The begin parameter must have its kind property specified.")
+                                };
+
+                                var roundedLocalBegin = localBegin.RoundDown(fileSource.FilePeriod);
+
+                                fileBegin = AdjustToUtc(roundedLocalBegin, fileSource.UtcOffset);
+                            }
 
                             /* CB = Current Begin, FP = File Period
                             * 
