@@ -1,3 +1,8 @@
+## v2.0.0-beta.13 - 2023-09-11
+
+- Fix MissingMethodException problem.
+
+
 ## v2.0.0-beta.12 - 2023-09-11
 
 - Update Nexus.Extensibility dependency.
