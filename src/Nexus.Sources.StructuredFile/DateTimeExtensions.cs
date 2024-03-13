@@ -1,10 +1,9 @@
-namespace Nexus.Sources
+namespace Nexus.Sources;
+
+internal static class DateTimeExtensions
 {
-    internal static class DateTimeExtensions
+    public static DateTime RoundDown(this DateTime dateTime, TimeSpan timeSpan)
     {
-        public static DateTime RoundDown(this DateTime dateTime, TimeSpan timeSpan)
-        {
-            return new DateTime(dateTime.Ticks - (dateTime.Ticks % timeSpan.Ticks), dateTime.Kind);
-        }
+        return new DateTime(dateTime.Ticks - (dateTime.Ticks % timeSpan.Ticks), dateTime.Kind);
     }
 }

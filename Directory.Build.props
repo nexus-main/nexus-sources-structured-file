@@ -11,7 +11,7 @@
       https://www.myget.org/F/apollo3zehn-dev/api/v3/index.json
     </RestoreAdditionalProjectSources>
   </PropertyGroup>
-      
+
   <PropertyGroup>
     <ArtifactsPath>$([MSBuild]::NormalizePath($(MSBuildThisFileDirectory)artifacts))</ArtifactsPath>
     <BaseIntermediateOutputPath>$(ArtifactsPath)/obj/$(MSBuildProjectName)</BaseIntermediateOutputPath>
