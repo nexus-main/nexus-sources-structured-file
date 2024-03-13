@@ -49,6 +49,7 @@ public class StructuredFileDataSourceTests
     [InlineData("DATABASES/H", "2019-12-31T12-00-00Z", "2020-01-02T00-20-00Z")]
     [InlineData("DATABASES/I", "2019-12-31T23-55-00Z", "2020-01-01T00-15-00Z")]
     [InlineData("DATABASES/J", "2020-01-01T00-00-00Z", "2020-01-05T00-00-00Z")]
+    [InlineData("DATABASES/K", "2020-01-01T00-00-00Z", "2020-01-02T00-00-00Z")]
     public async Task CanProvideTimeRange(string root, string expectedBeginString, string expectedEndString)
     {
         var expectedBegin = DateTime.ParseExact(expectedBeginString, "yyyy-MM-ddTHH-mm-ssZ", null, DateTimeStyles.AdjustToUniversal);

@@ -721,7 +721,16 @@ public abstract class StructuredFileDataSource : IDataSource
 
         // get all candidate folders
         var candidateFolders = fileSource.PathSegments.Length >= 1
-            ? GetCandidateFolders(rootPath, default, begin, end, fileSource, fileSource.PathSegments, cancellationToken)
+
+            ? GetCandidateFolders(
+                rootPath, 
+                default, 
+                begin, 
+                end, 
+                fileSource, 
+                fileSource.PathSegments, 
+                cancellationToken)
+
             : new List<(string, DateTime)>() { (rootPath, default) };
 
         return candidateFolders.SelectMany(currentFolder =>
@@ -731,7 +740,11 @@ public abstract class StructuredFileDataSource : IDataSource
             var candidateFiles = filePaths
                 .Select(filePath =>
                 {
-                    var success = TryGetFileBeginByPath(filePath, fileSource, out var fileBegin, folderBegin: currentFolder.DateTime);
+                    var success = TryGetFileBeginByPath(
+                        filePath, 
+                        fileSource, 
+                        out var fileBegin, 
+                        folderBegin: currentFolder.DateTime);
 
                     return (success, filePath, fileBegin);
                 })
@@ -952,7 +965,7 @@ public abstract class StructuredFileDataSource : IDataSource
         var folderBegin = default(DateTime);
 
         var pathSegments = filePath
-                        .Split('/', '\\');
+            .Split('/', '\\');
 
         pathSegments = pathSegments
             .Skip(pathSegments.Length - fileSource.PathSegments.Length - 1)
