@@ -4,6 +4,7 @@ using Nexus.Extensibility;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 using System.Text.Json;
 using Xunit;
 
@@ -11,6 +12,64 @@ namespace Nexus.Sources.Tests;
 
 public class StructuredFileDataSourceTests
 {
+    [Theory]
+
+    // date + time
+    [InlineData("2020-01-01T00-00-00", "yyyy-MM-ddTHH-mm-ss", "06:00", "2020-01-01T00-00-00+06:00")]
+    [InlineData("2020-01-01T00-00-00Z", "yyyy-MM-ddTHH-mm-ssK", "06:00", "2020-01-01T00-00-00+00:00")]
+    [InlineData("2020-01-01T00-00-00+00", "yyyy-MM-ddTHH-mm-sszz", "06:00", "2020-01-01T00-00-00+00:00")]
+    [InlineData("2020-01-01T00-00-00+00:00", "yyyy-MM-ddTHH-mm-ssK", "06:00", "2020-01-01T00-00-00+00:00")]
+    [InlineData("2020-01-01T00-00-00+03", "yyyy-MM-ddTHH-mm-sszz", "06:00", "2020-01-01T00-00-00+03:00")]
+    [InlineData("2020-01-01T00-00-00+03:00", "yyyy-MM-ddTHH-mm-ssK", "06:00", "2020-01-01T00-00-00+03:00")]
+
+    // date
+    [InlineData("2020-01-01", "yyyy-MM-dd", "06:00", "2020-01-01T00-00-00+06:00")]
+    [InlineData("2020-01-01Z", "yyyy-MM-ddK", "06:00", "2020-01-01T00-00-00+00:00")]
+    [InlineData("2020-01-01+00", "yyyy-MM-ddzz", "06:00", "2020-01-01T00-00-00+00:00")]
+    [InlineData("2020-01-01+00:00", "yyyy-MM-ddK", "06:00", "2020-01-01T00-00-00+00:00")]
+    [InlineData("2020-01-01+03", "yyyy-MM-ddzz", "06:00", "2020-01-01T00-00-00+03:00")]
+    [InlineData("2020-01-01+03:00", "yyyy-MM-ddK", "06:00", "2020-01-01T00-00-00+03:00")]
+
+    // time
+    [InlineData("00-00-00", "HH-mm-ss", "06:00", "0001-01-01T00-00-00+06:00")]
+    [InlineData("00-00-00Z", "HH-mm-ssK", "06:00", "0001-01-01T00-00-00+00:00")]
+    [InlineData("00-00-00+00", "HH-mm-sszz", "06:00", "0001-01-01T00-00-00+00:00")]
+    [InlineData("00-00-00+00:00", "HH-mm-ssK", "06:00", "0001-01-01T00-00-00+00:00")]
+    [InlineData("00-00-00+03", "HH-mm-sszz", "06:00", "0001-01-01T00-00-00+03:00")]
+    [InlineData("00-00-00+03:00", "HH-mm-ssK", "06:00", "0001-01-01T00-00-00+03:00")]
+    public void CanTryParseToUtc(
+        string input,
+        string format,
+        string utcOffsetString,
+        string expectedDateTimeString)
+    {
+        var utcOffset = TimeSpan.ParseExact(utcOffsetString, "hh\\:mm", default);
+
+        var success = CustomDateTimeOffset.TryParseExact(
+            input, 
+            format, 
+            utcOffset,
+            out var actual);
+
+        var expectedDateTimeStringParts = expectedDateTimeString.Split('+');
+
+        var expected = new CustomDateTimeOffset
+        (
+            dateTime: DateTime.ParseExact(
+                expectedDateTimeStringParts[0],
+                "yyyy-MM-ddTHH-mm-ss",
+                default),
+
+            offset: TimeSpan.ParseExact(
+                expectedDateTimeStringParts[1],
+                "hh\\:mm",
+                default)
+        );
+
+        Assert.True(success);
+        Assert.Equal(expected, actual);
+}
+
     [Fact]
     public async Task CanProvideFirstFile()
     {
@@ -129,7 +188,7 @@ public class StructuredFileDataSourceTests
 
         // Assert
         Assert.True(success);
-        Assert.Equal(expectedFileBegin, fileBegin);
+        Assert.Equal(expectedFileBegin, fileBegin.UtcDateTime);
     }
 
     [Theory]

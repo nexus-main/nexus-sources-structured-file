@@ -1,6 +1,6 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Nexus.DataModel;
@@ -149,28 +149,25 @@ public abstract class StructuredFileDataSource : IDataSource
 
                         // first
                         var firstDateTime = GetCandidateFiles(Root, DateTime.MinValue, DateTime.MinValue, fileSource, cancellationToken)
-                            .Select(file => file.DateTime)
+                            .Select(file => file.DateTimeOffset.UtcDateTime)
                             .OrderBy(current => current)
                             .FirstOrDefault();
 
                         if (firstDateTime == default)
                             firstDateTime = DateTime.MaxValue;
 
-                        firstDateTime = AdjustToUtc(firstDateTime, fileSource.UtcOffset);
-
                         if (firstDateTime < minDateTime)
                             minDateTime = firstDateTime;
 
                         // last
                         var lastDateTime = GetCandidateFiles(Root, DateTime.MaxValue, DateTime.MaxValue, fileSource, cancellationToken)
-                            .Select(file => file.DateTime)
+                            .Select(file => file.DateTimeOffset.UtcDateTime)
                             .OrderByDescending(current => current)
                             .FirstOrDefault();
 
                         if (lastDateTime == default)
                             lastDateTime = DateTime.MinValue;
 
-                        lastDateTime = AdjustToUtc(lastDateTime, fileSource.UtcOffset);
                         lastDateTime = lastDateTime.Add(fileSource.FilePeriod);
 
                         if (lastDateTime > maxDateTime)
@@ -233,7 +230,9 @@ public abstract class StructuredFileDataSource : IDataSource
                         var candidateFiles = GetCandidateFiles(Root, begin, end, fileSource, cancellationToken);
 
                         var files = candidateFiles
-                            .Where(current => begin <= current.DateTime && current.DateTime < end)
+                            .Where(
+                                current => begin <= current.DateTimeOffset.UtcDateTime && 
+                                current.DateTimeOffset.UtcDateTime < end)
                             .ToList();
 
                         var availabilityTasks = files.Select(file =>
@@ -576,7 +575,8 @@ public abstract class StructuredFileDataSource : IDataSource
             filePaths = [Path.Combine(folderPath, fileName)];
         }
 
-        var utcFileBegin = AdjustToUtc(localFileBegin, fileSource.UtcOffset);
+        var utcFileBegin = new CustomDateTimeOffset(localFileBegin, fileSource.UtcOffset)
+            .UtcDateTime;
 
         return Task.FromResult((utcFileBegin, filePaths));
     }
@@ -595,7 +595,7 @@ public abstract class StructuredFileDataSource : IDataSource
                     DateTime.MinValue,
                     fileSource,
                     CancellationToken.None)
-            .OrderBy(file => file.DateTime)
+            .OrderBy(file => file.DateTimeOffset.UtcDateTime)
             .Select(file => file.FilePath)
             .FirstOrDefault();
 
@@ -706,7 +706,7 @@ public abstract class StructuredFileDataSource : IDataSource
 
     #region Helpers
 
-    private static IEnumerable<(string FilePath, DateTime DateTime)> GetCandidateFiles(
+    private static IEnumerable<(string FilePath, CustomDateTimeOffset DateTimeOffset)> GetCandidateFiles(
         string rootPath,
         DateTime begin,
         DateTime end,
@@ -717,7 +717,7 @@ public abstract class StructuredFileDataSource : IDataSource
 
         // initial check
         if (!Directory.Exists(rootPath))
-            return new List<(string, DateTime)>();
+            return new List<(string, CustomDateTimeOffset)>();
 
         // get all candidate folders
         var candidateFolders = fileSource.PathSegments.Length >= 1
@@ -731,7 +731,9 @@ public abstract class StructuredFileDataSource : IDataSource
                 fileSource.PathSegments, 
                 cancellationToken)
 
-            : new List<(string, DateTime)>() { (rootPath, default) };
+            : new List<(string, CustomDateTimeOffset)>() { (rootPath, default) };
+
+        var folders = candidateFolders.ToList();
 
         return candidateFolders.SelectMany(currentFolder =>
         {
@@ -755,9 +757,9 @@ public abstract class StructuredFileDataSource : IDataSource
         });
     }
 
-    private static IEnumerable<(string FolderPath, DateTime DateTime)> GetCandidateFolders(
+    private static IEnumerable<(string FolderPath, CustomDateTimeOffset DateTime)> GetCandidateFolders(
         string root,
-        DateTime rootDate,
+        CustomDateTimeOffset rootDate,
         DateTime begin,
         DateTime end,
         FileSource fileSource,
@@ -779,22 +781,18 @@ public abstract class StructuredFileDataSource : IDataSource
             {
                 var folderName = Path.GetFileName(folderPath);
 
-                var success = DateTime
-                    .TryParseExact(
-                        folderName,
-                        pathSegments.First(),
-                        default,
-                        DateTimeStyles.NoCurrentDateDefault,
-                        out var parsedDateTime
-                    );
+                var success = CustomDateTimeOffset.TryParseExact(
+                    folderName,
+                    pathSegments.First(),
+                    fileSource.UtcOffset,
+                    out var parsedDateTime
+                );
 
-                if (parsedDateTime == default)
+                if (parsedDateTime.UtcDateTime == default)
                     parsedDateTime = rootDate;
 
                 else
                     hasDateTimeInformation = true;
-
-                parsedDateTime = AdjustToUtc(parsedDateTime, fileSource.UtcOffset);
 
                 return (folderPath, parsedDateTime);
             })
@@ -842,29 +840,28 @@ public abstract class StructuredFileDataSource : IDataSource
         }
     }
 
-    private static IEnumerable<(string Key, DateTime Value)> FilterBySearchDate(
+    private static IEnumerable<(string Key, CustomDateTimeOffset Value)> FilterBySearchDate(
         DateTime begin,
         DateTime end,
-        Dictionary<string, DateTime>
-        folderNameToDateTimeMap,
+        Dictionary<string, CustomDateTimeOffset> folderNameToDateTimeMap,
         string expectedSegmentName)
     {
         if (begin == DateTime.MinValue && end == DateTime.MinValue)
         {
             var folderCandidate = folderNameToDateTimeMap
-                .OrderBy(entry => entry.Value)
+                .OrderBy(entry => entry.Value.UtcDateTime)
                 .FirstOrDefault();
 
-            return new List<(string, DateTime)>() { (folderCandidate.Key, folderCandidate.Value) };
+            return new List<(string, CustomDateTimeOffset)>() { (folderCandidate.Key, folderCandidate.Value) };
         }
 
         else if (begin == DateTime.MaxValue && end == DateTime.MaxValue)
         {
             var folderCandidate = folderNameToDateTimeMap
-               .OrderByDescending(entry => entry.Value)
+               .OrderByDescending(entry => entry.Value.UtcDateTime)
                .FirstOrDefault();
 
-            return new List<(string, DateTime)>() { (folderCandidate.Key, folderCandidate.Value) };
+            return new List<(string, CustomDateTimeOffset)>() { (folderCandidate.Key, folderCandidate.Value) };
         }
 
         else
@@ -875,7 +872,7 @@ public abstract class StructuredFileDataSource : IDataSource
                     // Check for the case that the parsed date/time
                     // (1) is more specific (2020-01-01T22) than the search time range (2020-01-01T00 - 2021-01-02T00)
                     // (2) is less specific but in-between (2020-02) the search time range (2020-01-01 - 2021-03-01)
-                    if (begin <= entry.Value && entry.Value < end)
+                    if (begin <= entry.Value.UtcDateTime && entry.Value.UtcDateTime < end)
                         return true;
 
                     // Check for the case that the parsed date/time
@@ -890,8 +887,8 @@ public abstract class StructuredFileDataSource : IDataSource
     internal static bool TryGetFileBeginByPath(
         string filePath,
         FileSource fileSource,
-        out DateTime fileBegin,
-        DateTime folderBegin = default)
+        out CustomDateTimeOffset fileBegin,
+        CustomDateTimeOffset folderBegin = default)
     {
         var fileName = Path.GetFileName(filePath);
         bool isSuccess;
@@ -902,7 +899,7 @@ public abstract class StructuredFileDataSource : IDataSource
             // result contains date/time information of either kind: date+time, time-only, default.
 
             // date+time: use file date/time
-            if (fileBegin.Date != default)
+            if (fileBegin.DateTime.Date != default)
             {
                 isSuccess = true;
             }
@@ -913,7 +910,10 @@ public abstract class StructuredFileDataSource : IDataSource
                 // short cut
                 if (folderBegin != default)
                 {
-                    fileBegin = new DateTime(folderBegin.Date.Ticks + fileBegin.TimeOfDay.Ticks, fileBegin.Kind);
+                    fileBegin = new CustomDateTimeOffset(
+                        new DateTime(folderBegin.DateTime.Date.Ticks + fileBegin.DateTime.TimeOfDay.Ticks), 
+                        fileBegin.Offset);
+                        
                     isSuccess = true;
                 }
 
@@ -922,7 +922,10 @@ public abstract class StructuredFileDataSource : IDataSource
                 {
                     folderBegin = GetFolderBegin_AnyKind(filePath, fileSource);
 
-                    fileBegin = folderBegin + fileBegin.TimeOfDay;
+                    fileBegin = new CustomDateTimeOffset(
+                        new DateTime(folderBegin.DateTime.Ticks + fileBegin.DateTime.TimeOfDay.Ticks), 
+                        fileBegin.Offset);
+
                     isSuccess = folderBegin != default;
                 }
             }
@@ -954,15 +957,12 @@ public abstract class StructuredFileDataSource : IDataSource
             isSuccess = false;
         }
 
-        if (isSuccess)
-            fileBegin = AdjustToUtc(fileBegin, fileSource.UtcOffset);
-
         return isSuccess;
     }
 
-    private static DateTime GetFolderBegin_AnyKind(string filePath, FileSource fileSource)
+    private static CustomDateTimeOffset GetFolderBegin_AnyKind(string filePath, FileSource fileSource)
     {
-        var folderBegin = default(DateTime);
+        var folderBegin = default(CustomDateTimeOffset);
 
         var pathSegments = filePath
             .Split('/', '\\');
@@ -977,15 +977,14 @@ public abstract class StructuredFileDataSource : IDataSource
             var folderName = pathSegments[i];
             var folderTemplate = fileSource.PathSegments[i];
 
-            var _ = DateTime.TryParseExact(
+            var _ = CustomDateTimeOffset.TryParseExact(
                 folderName,
                 folderTemplate,
-                default,
-                DateTimeStyles.NoCurrentDateDefault,
+                fileSource.UtcOffset,
                 out var currentFolderBegin
             );
 
-            if (currentFolderBegin > folderBegin)
+            if (currentFolderBegin.UtcDateTime > folderBegin.UtcDateTime)
                 folderBegin = currentFolderBegin;
         }
 
@@ -995,7 +994,7 @@ public abstract class StructuredFileDataSource : IDataSource
     private static bool TryGetFileBeginByName_AnyKind(
         string fileName,
         FileSource fileSource,
-        out DateTime fileBegin)
+        out CustomDateTimeOffset fileBegin)
     {
         /* (1) Regex is required in scenarios when there are more complex
          * file names, i.e. file names containing an opaque string that
@@ -1026,11 +1025,10 @@ public abstract class StructuredFileDataSource : IDataSource
             );
         }
 
-        var success = DateTime.TryParseExact(
+        var success = CustomDateTimeOffset.TryParseExact(
             fileName,
             fileTemplate,
-            default,
-            DateTimeStyles.NoCurrentDateDefault,
+            fileSource.UtcOffset,
             out fileBegin
         );
 
@@ -1041,19 +1039,6 @@ public abstract class StructuredFileDataSource : IDataSource
     {
         if (dateTime.Kind != DateTimeKind.Utc)
             throw new ArgumentException("UTC date/times are required.");
-    }
-
-    private static DateTime AdjustToUtc(DateTime dateTime, TimeSpan utcOffset)
-    {
-        var result = dateTime;
-
-        if (dateTime != DateTime.MinValue && dateTime != DateTime.MaxValue)
-        {
-            if (dateTime.Kind != DateTimeKind.Utc)
-                result = DateTime.SpecifyKind(dateTime.Subtract(utcOffset), DateTimeKind.Utc);
-        }
-
-        return result;
     }
 
     private static void ValidateFileSourceGroup(
