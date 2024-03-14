@@ -575,8 +575,11 @@ public abstract class StructuredFileDataSource : IDataSource
             filePaths = [Path.Combine(folderPath, fileName)];
         }
 
-        var utcFileBegin = new CustomDateTimeOffset(localFileBegin, fileSource.UtcOffset)
-            .UtcDateTime;
+        var utcFileBegin = new CustomDateTimeOffset
+        (
+            DateTime.SpecifyKind(localFileBegin, DateTimeKind.Unspecified), 
+            fileSource.UtcOffset
+        ).UtcDateTime;
 
         return Task.FromResult((utcFileBegin, filePaths));
     }
