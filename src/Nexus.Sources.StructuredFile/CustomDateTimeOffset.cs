@@ -33,7 +33,10 @@ internal record struct CustomDateTimeOffset
             input,
             format,
             default,
-            DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal | DateTimeStyles.NoCurrentDateDefault,
+            /* Detect if input string includes time-zone information */
+            DateTimeStyles.AdjustToUniversal | 
+            /* Do not use today as date when input contains no date information */
+            DateTimeStyles.NoCurrentDateDefault,
             out var tmpDateTime
         );
 
@@ -41,6 +44,10 @@ internal record struct CustomDateTimeOffset
             input,
             format,
             default,
+            /* Ensure that the Offset is 00:00 and so `tmpDateTimeOffset.UtcDateTime` 
+             * becomes comparable to `tmpDateTime.Date` which is being adjusted to
+             * universal.
+             */
             DateTimeStyles.AssumeUniversal,
             out var tmpDateTimeOffset
         );
@@ -52,7 +59,12 @@ internal record struct CustomDateTimeOffset
          * (see also 'NoCurrentDateDefault', which does not work
          * for DateTimeOffset) 
          */
-        if (tmpDateTime.Date != tmpDateTimeOffset.UtcDateTime.Date)
+        if (
+            /* AdjustToUniversal = UTC */
+            tmpDateTime.Date != 
+            /* UtcDateTime = UTC */
+            tmpDateTimeOffset.UtcDateTime.Date
+        )
         {
             dateTimeOffset = new CustomDateTimeOffset(
                 new DateTime(01, 01, 0001) + tmpDateTimeOffset.TimeOfDay,
@@ -65,17 +77,8 @@ internal record struct CustomDateTimeOffset
             dateTimeOffset = FromDateTimeOffset(tmpDateTimeOffset);
         }
 
-        /* timezone information in file path */
-        if (
-#warning improve
-            input.Contains("Z") ||
-            input.Contains("+"))
-        {
-            // do nothing
-        }
-
-        /* no timezone information in file path */
-        else
+        /* No timezone information found in input */
+        if (tmpDateTime.Kind == DateTimeKind.Unspecified)
         {
             dateTimeOffset = new CustomDateTimeOffset
             (
