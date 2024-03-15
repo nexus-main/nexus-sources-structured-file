@@ -5,13 +5,7 @@ namespace Nexus.Sources.Tests;
 
 public class StructuredFileDataSourceTester : StructuredFileDataSource
 {
-    #region Properties
-
     public Dictionary<string, Dictionary<string, IReadOnlyList<FileSource>>> Config { get; private set; } = default!;
-
-    #endregion
-
-    #region Methods
 
     protected override async Task InitializeAsync(CancellationToken cancellationToken)
     {
@@ -69,6 +63,4 @@ public class StructuredFileDataSourceTester : StructuredFileDataSource
                 .Fill(1);
         }
     }
-
-    #endregion
 }

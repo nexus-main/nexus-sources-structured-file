@@ -1,3 +1,7 @@
+## v2.0.0-beta.24 - 2024-03-15
+
+- Follow Nexus changes.
+
 ## v2.0.0-beta.14 - 2024-03-14
 
 - Fix ignored timezone information problem.

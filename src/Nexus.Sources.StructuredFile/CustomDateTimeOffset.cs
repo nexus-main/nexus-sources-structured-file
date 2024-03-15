@@ -1,6 +1,6 @@
 using System.Globalization;
 
-internal record struct CustomDateTimeOffset
+internal readonly record struct CustomDateTimeOffset
 {
     public CustomDateTimeOffset(DateTime dateTime, TimeSpan offset)
     {
@@ -18,11 +18,11 @@ internal record struct CustomDateTimeOffset
     public DateTime DateTime { get; }
 
     public DateTime UtcDateTime { get; }
-    
+
     public TimeSpan Offset { get; }
 
     public static bool TryParseExact(
-        string input, 
+        string input,
         string format,
         TimeSpan utcOffset,
         out CustomDateTimeOffset dateTimeOffset)
@@ -34,7 +34,7 @@ internal record struct CustomDateTimeOffset
             format,
             default,
             /* Detect if input string includes time-zone information */
-            DateTimeStyles.AdjustToUniversal | 
+            DateTimeStyles.AdjustToUniversal |
             /* Do not use today as date when input contains no date information */
             DateTimeStyles.NoCurrentDateDefault,
             out var tmpDateTime
@@ -61,7 +61,7 @@ internal record struct CustomDateTimeOffset
          */
         if (
             /* AdjustToUniversal = UTC */
-            tmpDateTime.Date != 
+            tmpDateTime.Date !=
             /* UtcDateTime = UTC */
             tmpDateTimeOffset.UtcDateTime.Date
         )
@@ -82,7 +82,7 @@ internal record struct CustomDateTimeOffset
         {
             dateTimeOffset = new CustomDateTimeOffset
             (
-                dateTimeOffset.DateTime, 
+                dateTimeOffset.DateTime,
                 utcOffset
             );
         }

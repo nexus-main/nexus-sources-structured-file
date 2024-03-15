@@ -4,7 +4,6 @@ using Nexus.Extensibility;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Security.Principal;
 using System.Text.Json;
 using Xunit;
 
@@ -46,8 +45,8 @@ public class StructuredFileDataSourceTests
         var utcOffset = TimeSpan.ParseExact(utcOffsetString, "hh\\:mm", default);
 
         var success = CustomDateTimeOffset.TryParseExact(
-            input, 
-            format, 
+            input,
+            format,
             utcOffset,
             out var actual);
 
@@ -68,7 +67,7 @@ public class StructuredFileDataSourceTests
 
         Assert.True(success);
         Assert.Equal(expected, actual);
-}
+    }
 
     [Fact]
     public async Task CanProvideFirstFile()

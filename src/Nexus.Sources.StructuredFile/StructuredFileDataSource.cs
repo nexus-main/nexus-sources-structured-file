@@ -1,6 +1,4 @@
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Nexus.DataModel;
@@ -46,12 +44,6 @@ public abstract class StructuredFileDataSource : IDataSource
     //
     // (6) Only file URLs are supported
 
-    #region 
-
-    #endregion
-
-    #region Properties
-
     /// <summary>
     /// Gets the root path of the database.
     /// </summary>
@@ -68,8 +60,6 @@ public abstract class StructuredFileDataSource : IDataSource
     protected ILogger Logger { get; private set; } = default!;
 
     private Func<string, Dictionary<string, IReadOnlyList<FileSource>>> FileSourceProvider { get; set; } = default!;
-
-    #endregion
 
     #region Protected API as seen by subclass
 
@@ -231,7 +221,7 @@ public abstract class StructuredFileDataSource : IDataSource
 
                         var files = candidateFiles
                             .Where(
-                                current => begin <= current.DateTimeOffset.UtcDateTime && 
+                                current => begin <= current.DateTimeOffset.UtcDateTime &&
                                 current.DateTimeOffset.UtcDateTime < end)
                             .ToList();
 
@@ -577,7 +567,7 @@ public abstract class StructuredFileDataSource : IDataSource
 
         var utcFileBegin = new CustomDateTimeOffset
         (
-            DateTime.SpecifyKind(localFileBegin, DateTimeKind.Unspecified), 
+            DateTime.SpecifyKind(localFileBegin, DateTimeKind.Unspecified),
             fileSource.UtcOffset
         ).UtcDateTime;
 
@@ -726,12 +716,12 @@ public abstract class StructuredFileDataSource : IDataSource
         var candidateFolders = fileSource.PathSegments.Length >= 1
 
             ? GetCandidateFolders(
-                rootPath, 
-                default, 
-                begin, 
-                end, 
-                fileSource, 
-                fileSource.PathSegments, 
+                rootPath,
+                default,
+                begin,
+                end,
+                fileSource,
+                fileSource.PathSegments,
                 cancellationToken)
 
             : new List<(string, CustomDateTimeOffset)>() { (rootPath, default) };
@@ -746,9 +736,9 @@ public abstract class StructuredFileDataSource : IDataSource
                 .Select(filePath =>
                 {
                     var success = TryGetFileBeginByPath(
-                        filePath, 
-                        fileSource, 
-                        out var fileBegin, 
+                        filePath,
+                        fileSource,
+                        out var fileBegin,
                         folderBegin: currentFolder.DateTime);
 
                     return (success, filePath, fileBegin);
@@ -914,9 +904,9 @@ public abstract class StructuredFileDataSource : IDataSource
                 if (folderBegin != default)
                 {
                     fileBegin = new CustomDateTimeOffset(
-                        new DateTime(folderBegin.DateTime.Date.Ticks + fileBegin.DateTime.TimeOfDay.Ticks), 
+                        new DateTime(folderBegin.DateTime.Date.Ticks + fileBegin.DateTime.TimeOfDay.Ticks),
                         fileBegin.Offset);
-                        
+
                     isSuccess = true;
                 }
 
@@ -926,7 +916,7 @@ public abstract class StructuredFileDataSource : IDataSource
                     folderBegin = GetFolderBegin_AnyKind(filePath, fileSource);
 
                     fileBegin = new CustomDateTimeOffset(
-                        new DateTime(folderBegin.DateTime.Ticks + fileBegin.DateTime.TimeOfDay.Ticks), 
+                        new DateTime(folderBegin.DateTime.Ticks + fileBegin.DateTime.TimeOfDay.Ticks),
                         fileBegin.Offset);
 
                     isSuccess = folderBegin != default;
