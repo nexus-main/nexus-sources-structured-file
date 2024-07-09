@@ -7,6 +7,11 @@ public class StructuredFileDataSourceTester : StructuredFileDataSource
 {
     public Dictionary<string, Dictionary<string, IReadOnlyList<FileSource>>> Config { get; private set; } = default!;
 
+    public new Task<(DateTime, string[])> FindFileBeginAndPathsAsync(DateTime begin, FileSource fileSource)
+    {
+        return base.FindFileBeginAndPathsAsync(begin, fileSource);
+    }
+
     protected override async Task InitializeAsync(CancellationToken cancellationToken)
     {
         var configFilePath = Path.Combine(Root, "config.json");

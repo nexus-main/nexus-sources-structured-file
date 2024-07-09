@@ -81,7 +81,7 @@ public class StructuredFileDataSourceTests
             SourceConfiguration: default!,
             RequestConfiguration: default!);
 
-        await dataSource!.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
+        await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
         var methodInfo = dataSource
             .GetType()
@@ -108,6 +108,8 @@ public class StructuredFileDataSourceTests
     [InlineData("DATABASES/I", "2019-12-31T23-55-00Z", "2020-01-01T00-15-00Z")]
     [InlineData("DATABASES/J", "2020-01-01T00-00-00Z", "2020-01-05T00-00-00Z")]
     [InlineData("DATABASES/K", "2020-01-01T00-00-00Z", "2020-01-02T00-00-00Z")]
+    [InlineData("DATABASES/L", "2020-01-01T00-00-00Z", "2020-01-04T00-00-00Z")]
+    [InlineData("DATABASES/M", "2020-01-01T01-35-23Z", "2020-01-01T05-00-00Z")]
     public async Task CanProvideTimeRange(string root, string expectedBeginString, string expectedEndString)
     {
         var expectedBegin = DateTime.ParseExact(expectedBeginString, "yyyy-MM-ddTHH-mm-ssZ", null, DateTimeStyles.AdjustToUniversal);
@@ -121,9 +123,9 @@ public class StructuredFileDataSourceTests
             SourceConfiguration: default!,
             RequestConfiguration: default!);
 
-        await dataSource!.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
+        await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
-        var (begin, end) = await dataSource!.GetTimeRangeAsync("/A/B/C", CancellationToken.None);
+        var (begin, end) = await dataSource.GetTimeRangeAsync("/A/B/C", CancellationToken.None);
 
         Assert.Equal(expectedBegin, begin);
         Assert.Equal(expectedEnd, end);
@@ -141,8 +143,11 @@ public class StructuredFileDataSourceTests
     [InlineData("DATABASES/H", "2020-01-02T00-00-00Z", "2020-01-03T00-00-00Z", 2 / 144.0, 4)]
     [InlineData("DATABASES/I", "2019-12-31T00-00-00Z", "2020-01-02T00-00-00Z", 2 / (2 * 288.0), 4)]
     [InlineData("DATABASES/J", "2020-01-01T00-00-00Z", "2020-01-06T00-00-00Z", 3 / 5.0, 1)]
+    [InlineData("DATABASES/L", "2020-01-01T00-00-00Z", "2020-01-04T00-00-00Z", 1, 0)]
+    [InlineData("DATABASES/M", "2020-01-01T00-00-00Z", "2020-01-02T00-00-00Z", 4 / 24.0, 3)]
     public async Task CanProvideAvailability(string root, string beginString, string endString, double expected, int precision)
     {
+        // Arrange
         var begin = DateTime.ParseExact(beginString, "yyyy-MM-ddTHH-mm-ssZ", default, DateTimeStyles.AdjustToUniversal);
         var end = DateTime.ParseExact(endString, "yyyy-MM-ddTHH-mm-ssZ", default, DateTimeStyles.AdjustToUniversal);
 
@@ -154,10 +159,12 @@ public class StructuredFileDataSourceTests
             SourceConfiguration: default!,
             RequestConfiguration: default!);
 
-        await dataSource!.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
+        await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
-        var actual = await dataSource!.GetAvailabilityAsync("/A/B/C", begin, end, CancellationToken.None);
+        // Act
+        var actual = await dataSource.GetAvailabilityAsync("/A/B/C", begin, end, CancellationToken.None);
 
+        // Assert
         Assert.Equal(expected, actual, precision);
     }
 
@@ -172,6 +179,9 @@ public class StructuredFileDataSourceTests
     [InlineData("H", "default", "2019-12-31_12-00-00.dat", "2019-12-31T12-00-00Z")]
     [InlineData("I", "default", "DATA/2019-12-31_23-55-00/data.dat", "2019-12-31T23-55-00Z")]
     [InlineData("J", "default", "DATA1/2020_01_01.dat", "2020-01-01T00-00-00Z")]
+    [InlineData("K", "default", "DATA/2020-01-01T00-00-00Z.dat", "2020-01-01T00-00-00Z")]
+    [InlineData("L", "default", "DATA/2020-01-02T00-00-00Z_V1.dat", "2020-01-02T00-00-00Z")]
+    [InlineData("M", "default", "DATA/2020-01-01T01-35-23Z.dat", "2020-01-01T01-35-23Z")]
     public void CanGetFileBeginByPath(string database, string key, string filePath, string expectedFileBeginString)
     {
         // Arrange
@@ -190,6 +200,49 @@ public class StructuredFileDataSourceTests
         Assert.Equal(expectedFileBegin, fileBegin.UtcDateTime);
     }
 
+    [Fact]
+    public async Task CanFindFileBeginAndPaths_Database_M()
+    {
+        // Arrange
+        var databaseFolderPath = "DATABASES/M";
+        var configFilePath = $"{databaseFolderPath}/config.json";
+        var configJson = File.ReadAllText(configFilePath);
+        var config = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, IReadOnlyList<FileSource>>>>(configJson)!;
+        var fileSource = config["/A/B/C"]["default"][0];
+        var dataSource = new StructuredFileDataSourceTester();
+
+        var context = new DataSourceContext(
+            ResourceLocator: new Uri(Path.Combine(Directory.GetCurrentDirectory(), databaseFolderPath)),
+            SystemConfiguration: default!,
+            SourceConfiguration: default!,
+            RequestConfiguration: default!);
+
+        await ((IDataSource)dataSource).SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
+
+        // Act
+        var actual = await dataSource.FindFileBeginAndPathsAsync(
+            begin: new DateTime(2020, 01, 01, 01, 00, 00, DateTimeKind.Utc),
+            fileSource: fileSource
+        );
+
+        // Assert
+        Assert.Equal(
+            expected: new DateTime(2020, 01, 01, 01, 00, 00, DateTimeKind.Utc),
+            actual: actual.Item1
+        );
+
+        Assert.Collection(actual.Item2.Order(),
+            actual1 => Assert.Equal(
+                expected: "2020-01-01T01-35-23Z.dat", 
+                actual: Path.GetFileName(actual1)
+            ),
+            actual2 => Assert.Equal(
+                expected: "2020-01-01T01-47-01Z.dat", 
+                actual: Path.GetFileName(actual2)
+            )
+        );
+    }
+
     [Theory]
     [InlineData("2020-01-01T00-00-00Z", "2020-01-01T00-00-00Z")]
     [InlineData("2020-01-02T00-00-00Z", "2020-01-01T00-00-00Z")]
@@ -201,7 +254,7 @@ public class StructuredFileDataSourceTests
         var dataSource = new StructuredFileDataSourceTester() as IDataSource;
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            dataSource!.GetAvailabilityAsync("/A/B/C", begin, end, CancellationToken.None));
+            dataSource.GetAvailabilityAsync("/A/B/C", begin, end, CancellationToken.None));
     }
 
     [Fact]
@@ -215,9 +268,9 @@ public class StructuredFileDataSourceTests
             SourceConfiguration: default!,
             RequestConfiguration: default!);
 
-        await dataSource!.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
+        await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
-        var catalog = await dataSource!.GetCatalogAsync("/A/B/C", CancellationToken.None);
+        var catalog = await dataSource.GetCatalogAsync("/A/B/C", CancellationToken.None);
         var resource = catalog.Resources![0];
         var representation = resource.Representations![0];
         var catalogItem = new CatalogItem(catalog, resource, representation, default);
@@ -249,7 +302,7 @@ public class StructuredFileDataSourceTests
 
         var request = new ReadRequest(catalogItem, data, status);
 
-        await dataSource!.ReadAsync(
+        await dataSource.ReadAsync(
             begin,
             end,
             [request, request],
@@ -276,9 +329,9 @@ public class StructuredFileDataSourceTests
             SourceConfiguration: default!,
             RequestConfiguration: default!);
 
-        await dataSource!.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
+        await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
-        var catalog = await dataSource!.GetCatalogAsync("/A/B/C", CancellationToken.None);
+        var catalog = await dataSource.GetCatalogAsync("/A/B/C", CancellationToken.None);
         var resource = catalog.Resources![0];
         var representation = resource.Representations![0];
         var catalogItem = new CatalogItem(catalog, resource, representation, default);

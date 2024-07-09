@@ -158,7 +158,9 @@ public abstract class StructuredFileDataSource : IDataSource
                         if (lastDateTime == default)
                             lastDateTime = DateTime.MinValue;
 
-                        lastDateTime = lastDateTime.Add(fileSource.FilePeriod);
+                        lastDateTime = lastDateTime
+                            .RoundDown(fileSource.FilePeriod)
+                            .Add(fileSource.FilePeriod);
 
                         if (lastDateTime > maxDateTime)
                             maxDateTime = lastDateTime;
@@ -199,6 +201,8 @@ public abstract class StructuredFileDataSource : IDataSource
         // no true async file enumeration available: https://github.com/dotnet/runtime/issues/809
         return Task.Run(async () =>
         {
+            var fileDateTimeCache = new HashSet<long>();
+
             double availability;
 
             if (Directory.Exists(Root))
@@ -212,6 +216,8 @@ public abstract class StructuredFileDataSource : IDataSource
 
                     foreach (var fileSource in fileSourceGroup)
                     {
+                        fileDateTimeCache.Clear();
+
                         using var scope = Logger.BeginScope(fileSource);
                         Logger.LogDebug("Analyzing file source");
 
@@ -220,10 +226,34 @@ public abstract class StructuredFileDataSource : IDataSource
                         var candidateFiles = GetCandidateFiles(Root, begin, end, fileSource, cancellationToken);
 
                         var files = candidateFiles
-                            .Where(
-                                current => begin <= current.DateTimeOffset.UtcDateTime &&
-                                current.DateTimeOffset.UtcDateTime < end)
-                            .ToList();
+                            .Where(current => 
+                                {
+                                    var utcDateTime = current.DateTimeOffset.UtcDateTime;
+                                    var isWithinRange = begin <= utcDateTime && utcDateTime < end;
+
+                                    if (isWithinRange)
+                                    {
+                                        var roundedDateTime = current.DateTimeOffset.UtcDateTime
+                                            .RoundDown(fileSource.FilePeriod);
+
+                                        if (fileDateTimeCache.Contains(roundedDateTime.Ticks))
+                                        {
+                                            return false;
+                                        }
+
+                                        else
+                                        {
+                                            fileDateTimeCache.Add(roundedDateTime.Ticks);
+                                            return true;
+                                        }
+                                    }
+
+                                    else
+                                    {
+                                        return false;
+                                    }
+                                })
+                            .DistinctBy(current => current.DateTimeOffset.UtcDateTime);
 
                         var availabilityTasks = files.Select(file =>
                         {
