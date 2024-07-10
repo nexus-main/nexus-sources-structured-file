@@ -310,7 +310,8 @@ public class StructuredFileDataSourceTests
             end,
             [request, request],
             default!,
-            new Progress<double>(), CancellationToken.None);
+            new Progress<double>(), CancellationToken.None
+        );
 
         Assert.True(expectedData.SequenceEqual(MemoryMarshal.Cast<byte, long>(data.Span).ToArray()));
         Assert.True(expectedStatus.SequenceEqual(status.ToArray()));

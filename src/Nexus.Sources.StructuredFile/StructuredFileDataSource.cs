@@ -386,8 +386,8 @@ public abstract class StructuredFileDataSource : IDataSource
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
-                        // get file begin and paths
-                        var (fileBegin, filePaths) = await FindFileBeginAndPathsAsync(currentBegin, fileSource);
+                        // get regular file begin and paths
+                        var filePathsAndBegins = await FindFileBeginAndPathsAsync(currentBegin, fileSource);
 
                         /* CB = Current Begin, FP = File Period
                         * 
@@ -405,7 +405,7 @@ public abstract class StructuredFileDataSource : IDataSource
                         *    |----|---|-----------|-----------|-----------|--------|
                         *     ~~~~~~~~~    
                         */
-                        if (fileBegin <= CB_MINUS_FP)
+                        if (regularFileBegin <= CB_MINUS_FP)
                         {
                             throw new Exception("This should never happen");
                         }
@@ -417,9 +417,9 @@ public abstract class StructuredFileDataSource : IDataSource
                         *    |--------|-------|---|-----------|-----------|--------|
                         *              ~~~~~~~~~~~~
                         */
-                        else if (fileBegin <= currentBegin)
+                        else if (regularFileBegin <= currentBegin)
                         {
-                            var consumedFilePeriod = currentBegin - fileBegin;
+                            var consumedFilePeriod = currentBegin - regularFileBegin;
                             var remainingFilePeriod = fileSource.FilePeriod - consumedFilePeriod;
 
                             currentPeriod = TimeSpan.FromTicks(Math.Min(remainingFilePeriod.Ticks, remainingPeriod.Ticks));
@@ -461,7 +461,7 @@ public abstract class StructuredFileDataSource : IDataSource
                                         var readInfo = new ReadInfo(
                                             filePath,
                                             fileSource,
-                                            fileBegin,
+                                            regularFileBegin,
                                             fileOffset,
                                             fileBlock,
                                             fileLength
@@ -491,10 +491,10 @@ public abstract class StructuredFileDataSource : IDataSource
                         *                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                         *                          <skip >
                         */
-                        else if (fileBegin < end)
+                        else if (regularFileBegin < end)
                         {
-                            Logger.LogDebug("Skipping period {FileBegin} to {CurrentBegin}", fileBegin, currentBegin);
-                            currentPeriod = fileBegin - currentBegin;
+                            Logger.LogDebug("Skipping period {FileBegin} to {CurrentBegin}", regularFileBegin, currentBegin);
+                            currentPeriod = regularFileBegin - currentBegin;
                             fileBlock = (int)(currentPeriod.Ticks / samplePeriod.Ticks);
                         }
 
@@ -550,9 +550,9 @@ public abstract class StructuredFileDataSource : IDataSource
     /// </summary>
     /// <param name="begin">The begin date/time (UTC).</param>
     /// <param name="fileSource">The file source.</param>
-    /// <returns>The calculated file begin (UTC) and a list of found files with that file begin.</returns>
+    /// <returns>A list of tuples of the found file paths and the corresponding file begins (UTC).</returns>
     /// <exception cref="ArgumentException">Thrown when the begin value does not have its kind property set.</exception>
-    protected virtual Task<(DateTime, string[])> FindFileBeginAndPathsAsync(DateTime begin, FileSource fileSource)
+    protected virtual Task<IEnumerable<(string FilePath, DateTime DateTime)>> FindFileBeginAndPathsAsync(DateTime begin, FileSource fileSource)
     {
         // This implementation assumes that the file start times are aligned to multiples
         // of the file period. Depending on the file template, it is possible to find more
@@ -581,33 +581,31 @@ public abstract class StructuredFileDataSource : IDataSource
         var folderPath = Path.Combine(folderNameArray);
         var fileName = localFileBegin.ToString(fileSource.FileTemplate);
 
-        string[] filePaths;
-
-        if ((fileName.Contains('?') || fileName.Contains('*')) && Directory.Exists(folderPath))
-        {
-            filePaths = Directory
-               .EnumerateFiles(folderPath, fileName)
-               .ToArray();
-        }
-
-        else
-        {
-            filePaths = [Path.Combine(folderPath, fileName)];
-        }
-
         var utcFileBegin = new CustomDateTimeOffset
         (
             DateTime.SpecifyKind(localFileBegin, DateTimeKind.Unspecified),
             fileSource.UtcOffset
         ).UtcDateTime;
 
-        var begins = filePaths.Select(x =>
-        {
-            TryGetFileBeginByPath(x, fileSource, out var theBegin);
-            return theBegin;
-        }).ToArray();
+        IEnumerable<(string FilePath, DateTime DateTime)> result;
 
-        return Task.FromResult((utcFileBegin, filePaths));
+        if (fileName.Contains('?') || fileName.Contains('*'))
+        {
+            result = GetCandidateFiles(
+                rootPath: folderPath,
+                begin: utcFileBegin,
+                end: utcFileBegin + fileSource.FilePeriod,
+                fileSource,
+                CancellationToken.None
+            ).Select(current => (current.FilePath, current.DateTimeOffset.UtcDateTime));
+        }
+
+        else
+        {
+            result = [(Path.Combine(folderPath, fileName), utcFileBegin)];
+        }
+
+        return Task.FromResult(result);
     }
 
     /// <summary>
@@ -746,7 +744,7 @@ public abstract class StructuredFileDataSource : IDataSource
 
         // initial check
         if (!Directory.Exists(rootPath))
-            return new List<(string, CustomDateTimeOffset)>();
+            return Array.Empty<(string, CustomDateTimeOffset)>();
 
         // get all candidate folders
         var candidateFolders = fileSource.PathSegments.Length >= 1
