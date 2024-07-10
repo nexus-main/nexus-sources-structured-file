@@ -8,7 +8,9 @@
           "yyyy-MM",
           "yyyy-MM-dd"
         ],
-        "FileTemplate": "yyyy-MM-dd_HH-mm-ss'.dat'",
+        "FileTemplate": "yyyy-MM-dd_HH-'*.dat'",
+        "FileDateTimePreselector": "(.{19})\\.dat",
+        "FileDateTimeSelector": "yyyy-MM-dd_HH-mm-ss",
         "FilePeriod": "00:10:00",
         "UtcOffset": "00:00:00"
       },
