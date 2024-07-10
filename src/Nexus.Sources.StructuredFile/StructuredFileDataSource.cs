@@ -601,13 +601,6 @@ public abstract class StructuredFileDataSource : IDataSource
             fileSource.UtcOffset
         ).UtcDateTime;
 
-# error Check all code before commit! There is test code
-# error utcFileBegin returns the expected file begin, but the actual one can be later in time
-# error the following code shows how to get real file begins
-# error This approach is more costly, maybe we apply it only when FileDateTimePreselector is not null (i.e. string contains ? or *)
-# error The real file begin should then be used by the caller to calculate correct buffer offset (slice)
-# error So this method could just return the offset between expected file begin and actual one
-# error Is UtcFileBegin in return statement still needed? I think it becomes superfluous
         var begins = filePaths.Select(x =>
         {
             TryGetFileBeginByPath(x, fileSource, out var theBegin);
@@ -782,7 +775,8 @@ public abstract class StructuredFileDataSource : IDataSource
                         filePath,
                         fileSource,
                         out var fileBegin,
-                        folderBegin: currentFolder.DateTime);
+                        folderBegin: currentFolder.DateTime
+                    );
 
                     return (success, filePath, fileBegin);
                 })
@@ -803,6 +797,15 @@ public abstract class StructuredFileDataSource : IDataSource
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        // Take into account folders with data from previous day or from subsequent day
+        // (depending on the UTC offset sign). But only when begin and end are not special
+        // values.
+        if (end != default && end != DateTime.MaxValue && fileSource.UtcOffset > TimeSpan.Zero)
+            end += fileSource.UtcOffset;
+
+        else if (begin != default && begin != DateTime.MaxValue && fileSource.UtcOffset < TimeSpan.Zero)
+            begin -= fileSource.UtcOffset;
 
         // get all available folders
         var folderPaths = Directory
