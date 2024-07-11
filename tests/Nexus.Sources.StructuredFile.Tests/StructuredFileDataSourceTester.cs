@@ -7,7 +7,7 @@ public class StructuredFileDataSourceTester : StructuredFileDataSource
 {
     public Dictionary<string, Dictionary<string, IReadOnlyList<FileSource>>> Config { get; private set; } = default!;
 
-    public new Task<(DateTime, string[])> FindFileBeginAndPathsAsync(DateTime begin, FileSource fileSource)
+    public new Task<(DateTime, IEnumerable<(string, TimeSpan)>)> FindFileBeginAndPathsAsync(DateTime begin, FileSource fileSource)
     {
         return base.FindFileBeginAndPathsAsync(begin, fileSource);
     }
@@ -60,11 +60,13 @@ public class StructuredFileDataSourceTester : StructuredFileDataSource
         foreach (var readRequest in readRequests)
         {
             bytes
+                .AsSpan(0, (int)readInfo.FileBlock * sizeof(long))
                 .CopyTo(readRequest.Data.Span);
 
             readRequest
                 .Status
                 .Span
+                .Slice(0, (int)readInfo.FileBlock)
                 .Fill(1);
         }
     }
