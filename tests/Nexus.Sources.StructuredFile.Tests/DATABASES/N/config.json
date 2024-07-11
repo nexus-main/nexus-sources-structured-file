@@ -1,0 +1,13 @@
+{
+  "/A/B/C": {
+    "default": [{
+      "PathSegments": [
+        "'DATA'",
+        "yyyy-MM-dd"
+      ],
+      "FileTemplate": "HH-mm-ss'.dat'",
+      "FilePeriod": "06:00:00",
+      "UtcOffset": "12:00:00"
+    }]
+  }
+}

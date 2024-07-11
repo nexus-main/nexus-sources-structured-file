@@ -1,7 +1,9 @@
 using System.Globalization;
 
-internal readonly record struct CustomDateTimeOffset
+internal record struct CustomDateTimeOffset
 {
+    private DateTime? _utcDateTime;
+
     public CustomDateTimeOffset(DateTime dateTime, TimeSpan offset)
     {
         if (dateTime.Kind != DateTimeKind.Unspecified)
@@ -9,15 +11,24 @@ internal readonly record struct CustomDateTimeOffset
 
         DateTime = dateTime;
         Offset = offset;
-
-        UtcDateTime = DateTime == default && Offset > TimeSpan.Zero
-            ? new DateTime(0, DateTimeKind.Utc)
-            : new DateTimeOffset(DateTime, Offset).UtcDateTime;
     }
 
     public DateTime DateTime { get; }
 
-    public DateTime UtcDateTime { get; }
+    public DateTime UtcDateTime
+    {
+        get
+        {
+            if (!_utcDateTime.HasValue)
+            {
+                _utcDateTime = (DateTime - DateTime.MinValue) <= Offset
+                    ? new DateTime(0, DateTimeKind.Utc)
+                    : new DateTimeOffset(DateTime, Offset).UtcDateTime;
+            }
+
+            return _utcDateTime.Value;
+        }
+    } 
 
     public TimeSpan Offset { get; }
 

@@ -31,14 +31,14 @@ public record FileSource(
 /// </summary>
 /// <param name="FilePath">The path of the file to read.</param>
 /// <param name="FileSource">The associated file source.</param>
-/// <param name="FileBegin">The begin date/time of the file.</param>
+/// <param name="RegularFileBegin">The regular begin date/time of the file.</param>
 /// <param name="FileOffset">The element offset within the file.</param>
 /// <param name="FileBlock">The element count to read from the file.</param>
 /// <param name="FileLength">The expected total number of elements within the file.</param>
 public record ReadInfo(
     string FilePath,
     FileSource FileSource,
-    DateTime FileBegin,
+    DateTime RegularFileBegin,
     long FileOffset,
     long FileBlock,
     long FileLength

@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
@@ -375,7 +376,7 @@ public abstract class StructuredFileDataSource : IDataSource
                         : new DateTime(Math.Min(end.Ticks, nextFileSource.Begin.Ticks), DateTimeKind.Utc);
 
                     // go!
-                    var fileLength = fileSource.FilePeriod.Ticks / samplePeriod.Ticks;
+                    var regularFileLength = fileSource.FilePeriod.Ticks / samplePeriod.Ticks;
                     var bufferOffset = (int)((fileSourceBegin - begin).Ticks / samplePeriod.Ticks);
                     var currentBegin = fileSourceBegin;
                     var totalPeriod = fileSourceEnd - fileSourceBegin;
@@ -386,122 +387,84 @@ public abstract class StructuredFileDataSource : IDataSource
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
-                        // get file begin and paths
-                        var (fileBegin, filePaths) = await FindFileBeginAndPathsAsync(currentBegin, fileSource);
+                        // get regular file begin and paths
+                        var (regularUtcFileBegin, fileInfos) = await FindFileBeginAndPathsAsync(currentBegin, fileSource);
 
-                        /* CB = Current Begin, FP = File Period
-                        * 
-                        *  begin    CB-FP    FB  CB     FB  CB+FP                 end
-                        *    |--------|-------|---|------|----|-----------|--------|
-                        */
-                        var CB_MINUS_FP = currentBegin - fileSource.FilePeriod;
-                        var CB_PLUS_FP = currentBegin + fileSource.FilePeriod;
+                        var consumedFilePeriod = currentBegin - regularUtcFileBegin;
+                        var remainingFilePeriod = fileSource.FilePeriod - consumedFilePeriod;
+                        var currentPeriod = TimeSpan.FromTicks(Math.Min(remainingFilePeriod.Ticks, remainingPeriod.Ticks));
+                        
+                        Logger.LogTrace("Process period {CurrentBegin} to {CurrentEnd}", currentBegin, currentBegin + currentPeriod);
 
-                        int fileBlock;
-                        TimeSpan currentPeriod;
+                        var fileBlock = (int)(currentPeriod.Ticks / samplePeriod.Ticks);
+                        var fileOffset = consumedFilePeriod.Ticks / samplePeriod.Ticks;
 
-                        /* Found file starts too early
-                        *  begin FB CB-FP        CB         CB+FP                 end
-                        *    |----|---|-----------|-----------|-----------|--------|
-                        *     ~~~~~~~~~    
-                        */
-                        if (fileBegin <= CB_MINUS_FP)
+                        foreach (var (filePath, fileBeginOffset) in fileInfos)
                         {
-                            throw new Exception("This should never happen");
-                        }
-
-                        /* normal case: current begin may be greater than file begin if: 
-                        * - this is the very first iteration
-                        * - the current file begins later than expected (incomplete file)
-                        *  begin    CB-FP    FB  CB         CB+FP                 end
-                        *    |--------|-------|---|-----------|-----------|--------|
-                        *              ~~~~~~~~~~~~
-                        */
-                        else if (fileBegin <= currentBegin)
-                        {
-                            var consumedFilePeriod = currentBegin - fileBegin;
-                            var remainingFilePeriod = fileSource.FilePeriod - consumedFilePeriod;
-
-                            currentPeriod = TimeSpan.FromTicks(Math.Min(remainingFilePeriod.Ticks, remainingPeriod.Ticks));
-                            Logger.LogTrace("Process period {CurrentBegin} to {CurrentEnd}", currentBegin, currentBegin + currentPeriod);
-
-                            fileBlock = (int)(currentPeriod.Ticks / samplePeriod.Ticks);
-
-                            var fileOffset = consumedFilePeriod.Ticks / samplePeriod.Ticks;
-
-                            foreach (var filePath in filePaths)
+                            if (File.Exists(filePath))
                             {
-                                if (File.Exists(filePath))
+                                // compensate offsets and lengths in case of incomplete file
+                                var incompleteFileCompensation = (int)(fileBeginOffset.Ticks / samplePeriod.Ticks);
+                                var actualBufferOffset = bufferOffset + incompleteFileCompensation;
+                                var actualFileBlock = fileBlock - incompleteFileCompensation;
+                                var actualFileOffset = fileOffset - incompleteFileCompensation;
+
+                                Logger.LogTrace("Process file {FilePath}", filePath);
+
+                                try
                                 {
-                                    Logger.LogTrace("Process file {FilePath}", filePath);
-
-                                    try
+                                    var readRequests = group.Select(request =>
                                     {
-                                        var readRequests = group.Select(request =>
-                                        {
-                                            var catalogItem = request.CatalogItem;
-                                            var representation = catalogItem.Representation;
+                                        var catalogItem = request.CatalogItem;
+                                        var representation = catalogItem.Representation;
 
-                                            var slicedData = request.Data
-                                                .Slice(bufferOffset * representation.ElementSize, fileBlock * representation.ElementSize);
-
-                                            var slicedStatus = request.Status
-                                                .Slice(bufferOffset, fileBlock);
-
-                                            var originalName = catalogItem.Resource.Properties?.GetStringValue(StructuredFileDataModelExtensions.OriginalNameKey)!;
-
-                                            return new StructuredFileReadRequest(
-                                                CatalogItem: request.CatalogItem,
-                                                Data: slicedData,
-                                                Status: slicedStatus,
-                                                OriginalName: originalName
+                                        var slicedData = request.Data
+                                            .Slice(
+                                                start: actualBufferOffset * representation.ElementSize, 
+                                                length: actualFileBlock * representation.ElementSize
                                             );
-                                        }).ToArray();
 
-                                        var readInfo = new ReadInfo(
-                                            filePath,
-                                            fileSource,
-                                            fileBegin,
-                                            fileOffset,
-                                            fileBlock,
-                                            fileLength
+                                        var slicedStatus = request.Status
+                                            .Slice(
+                                                start: actualBufferOffset, 
+                                                length: actualFileBlock
+                                            );
+
+                                        var originalName = catalogItem.Resource.Properties?
+                                            .GetStringValue(StructuredFileDataModelExtensions.OriginalNameKey)!;
+
+                                        return new StructuredFileReadRequest(
+                                            CatalogItem: request.CatalogItem,
+                                            Data: slicedData,
+                                            Status: slicedStatus,
+                                            OriginalName: originalName
                                         );
+                                    }).ToArray();
 
-                                        await ReadAsync(readInfo, readRequests, cancellationToken);
-                                    }
-                                    catch (OutOfMemoryException)
-                                    {
-                                        throw;
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        Logger.LogDebug(ex, "Could not process file {FilePath}", filePath);
-                                    }
+                                    var readInfo = new ReadInfo(
+                                        filePath,
+                                        fileSource,
+                                        regularUtcFileBegin,
+                                        fileOffset,
+                                        actualFileBlock,
+                                        regularFileLength
+                                    );
+
+                                    await ReadAsync(readInfo, readRequests, cancellationToken);
                                 }
-                                else
+                                catch (OutOfMemoryException)
                                 {
-                                    Logger.LogDebug("File {FilePath} does not exist", filePath);
+                                    throw;
+                                }
+                                catch (Exception ex)
+                                {
+                                    Logger.LogDebug(ex, "Could not process file {FilePath}", filePath);
                                 }
                             }
-                        }
-                        /* there was an incomplete file, skip the incomplete part 
-                        *
-                        *  begin    CB-FP        CB     FB                        end
-                        *    |--------|-----------|------|--------------------------
-                        *                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                        *                          <skip >
-                        */
-                        else if (fileBegin < end)
-                        {
-                            Logger.LogDebug("Skipping period {FileBegin} to {CurrentBegin}", fileBegin, currentBegin);
-                            currentPeriod = fileBegin - currentBegin;
-                            fileBlock = (int)(currentPeriod.Ticks / samplePeriod.Ticks);
-                        }
-
-                        /* file begin is > end, break loop */
-                        else
-                        {
-                            break;
+                            else
+                            {
+                                Logger.LogDebug("File {FilePath} does not exist", filePath);
+                            }
                         }
 
                         // update loop state
@@ -514,10 +477,11 @@ public abstract class StructuredFileDataSource : IDataSource
                     fileSourceBegin += totalPeriod;
 
                     progress.Report(
-                        (
+                        value: (
                             fileSourceGroupIndex +
                             (fileSourceBegin - begin).Ticks / (double)(end - begin).Ticks
-                        ) / fileSourceGroups.Count);
+                        ) / fileSourceGroups.Count
+                    );
                 }
             }
             catch (OutOfMemoryException)
@@ -550,20 +514,26 @@ public abstract class StructuredFileDataSource : IDataSource
     /// </summary>
     /// <param name="begin">The begin date/time (UTC).</param>
     /// <param name="fileSource">The file source.</param>
-    /// <returns>The calculated file begin (UTC) and a list of found files with that file begin.</returns>
+    /// <returns>The regular file begin (UTC) and a list of tuples of the found file paths and the offset to the regular file begin. This is non-zero for incomplete files.</returns>
     /// <exception cref="ArgumentException">Thrown when the begin value does not have its kind property set.</exception>
-    protected virtual Task<(DateTime, string[])> FindFileBeginAndPathsAsync(DateTime begin, FileSource fileSource)
+    protected virtual Task<(DateTime RegularUtcFileBegin, IEnumerable<(string FilePath, TimeSpan FileBeginOffset)>)> 
+        FindFileBeginAndPathsAsync(DateTime begin, FileSource fileSource)
     {
-        // This implementation assumes that the file start times are aligned to multiples
-        // of the file period. Depending on the file template, it is possible to find more
-        // than one matching file. There is one special case where two files are expected:
-        // A data logger creates versioned files with a granularity of e.g. 1 file per day.
-        // When the version changes, the logger creates a new file with same name but new
-        // version. This could look like this:
-        // 2020-01-01T00-00-00Z_v1.dat (contains data from midnight to time t0)
-        // 2020-01-01T00-00-00Z_v2.dat (contains data from time t0 + x to next midnight)
-        // Where x is the time period the system was offline to apply the new version.
-
+        /* This implementation assumes that files are stored in regular time intervals.
+         * The files can start late, but MUST end no later than the regular time interval.
+         * 
+         * There are some cases where two or more files are expected for a given `begin`:
+         *
+         * 1) A measurement is stopped and restarted frequently and each time a new data file
+         *    with the current date is created.
+         *
+         * 2) A data logger creates versioned files with a granularity of e.g. 1 file per day.
+         *    When the version changes, the logger creates a new file with same name but new
+         *    version. This could look like this:
+         *    2020-01-01T00-00-00Z_v1.dat (contains data from midnight to time t0)
+         *    2020-01-01T00-00-00Z_v2.dat (contains data from time t0 + x to next midnight)
+         *    Where x is the time period the system was offline to apply the new version.
+         */
         var localBegin = begin.Kind == DateTimeKind.Utc
             ? DateTime.SpecifyKind(begin.Add(fileSource.UtcOffset), DateTimeKind.Local)
             : throw new ArgumentException("The begin parameter must of kind UTC.");
@@ -576,32 +546,40 @@ public abstract class StructuredFileDataSource : IDataSource
 
         var folderNameArray = new List<string>() { Root }
             .Concat(folderNames)
-            .ToArray();
+            .ToArray();   
 
-        var folderPath = Path.Combine(folderNameArray);
-        var fileName = localFileBegin.ToString(fileSource.FileTemplate);
-
-        string[] filePaths;
-
-        if (fileName.Contains('?') || fileName.Contains('*') && Directory.Exists(folderPath))
-        {
-            filePaths = Directory
-               .EnumerateFiles(folderPath, fileName)
-               .ToArray();
-        }
-
-        else
-        {
-            filePaths = [Path.Combine(folderPath, fileName)];
-        }
-
-        var utcFileBegin = new CustomDateTimeOffset
+        var regularUtcFileBegin = new CustomDateTimeOffset
         (
             DateTime.SpecifyKind(localFileBegin, DateTimeKind.Unspecified),
             fileSource.UtcOffset
         ).UtcDateTime;
 
-        return Task.FromResult((utcFileBegin, filePaths));
+        IEnumerable<(string FilePath, TimeSpan FileBeginOffset)> fileInfos;
+
+        if (fileSource.FileTemplate.Contains('?') || fileSource.FileTemplate.Contains('*'))
+        {
+            var regularUtcFileEnd = regularUtcFileBegin + fileSource.FilePeriod;
+
+            fileInfos = GetCandidateFiles(
+                rootPath: Root,
+                begin: regularUtcFileBegin,
+                end: regularUtcFileBegin + fileSource.FilePeriod,
+                fileSource,
+                CancellationToken.None
+            )
+            .Where(current => regularUtcFileBegin <= current.DateTimeOffset.UtcDateTime && current.DateTimeOffset.UtcDateTime < regularUtcFileEnd)
+            .Select(current => (current.FilePath, current.DateTimeOffset.UtcDateTime - regularUtcFileBegin));
+        }
+
+        else
+        {
+            var folderPath = Path.Combine(folderNameArray);
+            var fileName = localFileBegin.ToString(fileSource.FileTemplate);
+
+            fileInfos = [(Path.Combine(folderPath, fileName), TimeSpan.Zero)];
+        }
+
+        return Task.FromResult((regularUtcFileBegin, fileInfos));
     }
 
     /// <summary>
@@ -740,7 +718,7 @@ public abstract class StructuredFileDataSource : IDataSource
 
         // initial check
         if (!Directory.Exists(rootPath))
-            return new List<(string, CustomDateTimeOffset)>();
+            return Array.Empty<(string, CustomDateTimeOffset)>();
 
         // get all candidate folders
         var candidateFolders = fileSource.PathSegments.Length >= 1
@@ -769,7 +747,8 @@ public abstract class StructuredFileDataSource : IDataSource
                         filePath,
                         fileSource,
                         out var fileBegin,
-                        folderBegin: currentFolder.DateTime);
+                        folderBegin: currentFolder.DateTime
+                    );
 
                     return (success, filePath, fileBegin);
                 })
@@ -790,6 +769,15 @@ public abstract class StructuredFileDataSource : IDataSource
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        // Take into account folders with data from previous day or from subsequent day
+        // (depending on the UTC offset sign). But only when begin and end are not special
+        // values.
+        if (end != default && end != DateTime.MaxValue && fileSource.UtcOffset > TimeSpan.Zero)
+            end += fileSource.UtcOffset;
+
+        else if (begin != default && begin != DateTime.MaxValue && fileSource.UtcOffset < TimeSpan.Zero)
+            begin -= fileSource.UtcOffset;
 
         // get all available folders
         var folderPaths = Directory

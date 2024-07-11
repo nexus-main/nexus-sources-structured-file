@@ -110,6 +110,7 @@ public class StructuredFileDataSourceTests
     [InlineData("DATABASES/K", "2020-01-01T00-00-00Z", "2020-01-02T00-00-00Z")]
     [InlineData("DATABASES/L", "2020-01-01T00-00-00Z", "2020-01-04T00-00-00Z")]
     [InlineData("DATABASES/M", "2020-01-01T01-35-23Z", "2020-01-01T05-00-00Z")]
+    [InlineData("DATABASES/N", "2019-12-31T12-00-00Z", "2020-01-03T12-00-00Z")]
     public async Task CanProvideTimeRange(string root, string expectedBeginString, string expectedEndString)
     {
         var expectedBegin = DateTime.ParseExact(expectedBeginString, "yyyy-MM-ddTHH-mm-ssZ", null, DateTimeStyles.AdjustToUniversal);
@@ -145,6 +146,7 @@ public class StructuredFileDataSourceTests
     [InlineData("DATABASES/J", "2020-01-01T00-00-00Z", "2020-01-06T00-00-00Z", 3 / 5.0, 1)]
     [InlineData("DATABASES/L", "2020-01-01T00-00-00Z", "2020-01-04T00-00-00Z", 1, 0)]
     [InlineData("DATABASES/M", "2020-01-01T00-00-00Z", "2020-01-02T00-00-00Z", 4 / 24.0, 3)]
+    [InlineData("DATABASES/N", "2020-01-01T00-00-00Z", "2020-01-03T00-00-00Z", 7 / 8.0, 2)]
     public async Task CanProvideAvailability(string root, string beginString, string endString, double expected, int precision)
     {
         // Arrange
@@ -182,6 +184,7 @@ public class StructuredFileDataSourceTests
     [InlineData("K", "default", "DATA/2020-01-01T00-00-00Z.dat", "2020-01-01T00-00-00Z")]
     [InlineData("L", "default", "DATA/2020-01-02T00-00-00Z_V1.dat", "2020-01-02T00-00-00Z")]
     [InlineData("M", "default", "DATA/2020-01-01T01-35-23Z.dat", "2020-01-01T01-35-23Z")]
+    [InlineData("N", "default", "DATA/2020-01-01/06-00-00.dat", "2019-12-31T18-00-00Z")]
     public void CanGetFileBeginByPath(string database, string key, string filePath, string expectedFileBeginString)
     {
         // Arrange
@@ -228,18 +231,34 @@ public class StructuredFileDataSourceTests
         // Assert
         Assert.Equal(
             expected: new DateTime(2020, 01, 01, 01, 00, 00, DateTimeKind.Utc),
-            actual: actual.Item1
+            actual: actual.RegularUtcFileBegin
         );
 
         Assert.Collection(actual.Item2.Order(),
-            actual1 => Assert.Equal(
-                expected: "2020-01-01T01-35-23Z.dat", 
-                actual: Path.GetFileName(actual1)
-            ),
-            actual2 => Assert.Equal(
-                expected: "2020-01-01T01-47-01Z.dat", 
-                actual: Path.GetFileName(actual2)
-            )
+            actual1 =>
+            {
+                Assert.Equal(
+                    expected: "2020-01-01T01-35-23Z.dat",
+                    actual: Path.GetFileName(actual1.FilePath)
+                );
+
+                Assert.Equal(
+                    expected: new TimeSpan(00, 35, 23),
+                    actual: actual1.FileBeginOffset
+                );
+            },
+            actual2 =>
+            {
+                Assert.Equal(
+                    expected: "2020-01-01T01-47-01Z.dat",
+                    actual: Path.GetFileName(actual2.FilePath)
+                );
+
+                Assert.Equal(
+                    expected: new TimeSpan(00, 47, 01),
+                    actual: actual2.FileBeginOffset
+                );
+            }
         );
     }
 
@@ -283,22 +302,22 @@ public class StructuredFileDataSourceTests
         var expectedData = new long[expectedLength];
         var expectedStatus = new byte[expectedLength];
 
-        void GenerateData(DateTimeOffset dateTime)
+        void GenerateData(DateTimeOffset dateTime, int length)
         {
-            var data = Enumerable.Range(0, 600)
+            var data = Enumerable.Range(0, length)
                 .Select(value => dateTime.Add(TimeSpan.FromSeconds(value)).ToUnixTimeSeconds())
                 .ToArray();
 
             var offset = (int)(dateTime - begin).TotalSeconds;
             data.CopyTo(expectedData.AsSpan()[offset..]);
-            expectedStatus.AsSpan().Slice(offset, 600).Fill(1);
+            expectedStatus.AsSpan().Slice(offset, length).Fill(1);
         }
 
-        GenerateData(new DateTimeOffset(2019, 12, 31, 12, 00, 0, 0, TimeSpan.Zero));
-        GenerateData(new DateTimeOffset(2019, 12, 31, 12, 20, 0, 0, TimeSpan.Zero));
-        GenerateData(new DateTimeOffset(2020, 01, 01, 00, 00, 0, 0, TimeSpan.Zero));
-        GenerateData(new DateTimeOffset(2020, 01, 02, 09, 40, 0, 0, TimeSpan.Zero));
-        GenerateData(new DateTimeOffset(2020, 01, 02, 09, 50, 0, 0, TimeSpan.Zero));
+        GenerateData(new DateTimeOffset(2019, 12, 31, 12, 00, 10, TimeSpan.Zero), length: 590);
+        GenerateData(new DateTimeOffset(2019, 12, 31, 12, 20, 00, TimeSpan.Zero), length: 600);
+        GenerateData(new DateTimeOffset(2020, 01, 01, 00, 00, 00, TimeSpan.Zero), length: 600);
+        GenerateData(new DateTimeOffset(2020, 01, 02, 09, 40, 00, TimeSpan.Zero), length: 600);
+        GenerateData(new DateTimeOffset(2020, 01, 02, 09, 50, 00, TimeSpan.Zero), length: 600);
 
         var request = new ReadRequest(catalogItem, data, status);
 
@@ -307,7 +326,8 @@ public class StructuredFileDataSourceTests
             end,
             [request, request],
             default!,
-            new Progress<double>(), CancellationToken.None);
+            new Progress<double>(), CancellationToken.None
+        );
 
         Assert.True(expectedData.SequenceEqual(MemoryMarshal.Cast<byte, long>(data.Span).ToArray()));
         Assert.True(expectedStatus.SequenceEqual(status.ToArray()));
