@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Nexus.DataModel;
 using Nexus.Extensibility;
-using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -232,19 +231,35 @@ public class StructuredFileDataSourceTests
         // Assert
         Assert.Equal(
             expected: new DateTime(2020, 01, 01, 01, 00, 00, DateTimeKind.Utc),
-            actual: actual.Item1
+            actual: actual.RegularUtcFileBegin
         );
 
-        // Assert.Collection(actual.Item2.Order(),
-        //     actual1 => Assert.Equal(
-        //         expected: "2020-01-01T01-35-23Z.dat", 
-        //         actual: Path.GetFileName(actual1)
-        //     ),
-        //     actual2 => Assert.Equal(
-        //         expected: "2020-01-01T01-47-01Z.dat", 
-        //         actual: Path.GetFileName(actual2)
-        //     )
-        // );
+        Assert.Collection(actual.Item2.Order(),
+            actual1 =>
+            {
+                Assert.Equal(
+                    expected: "2020-01-01T01-35-23Z.dat",
+                    actual: Path.GetFileName(actual1.FilePath)
+                );
+
+                Assert.Equal(
+                    expected: new TimeSpan(00, 35, 23),
+                    actual: actual1.FileBeginOffset
+                );
+            },
+            actual2 =>
+            {
+                Assert.Equal(
+                    expected: "2020-01-01T01-47-01Z.dat",
+                    actual: Path.GetFileName(actual2.FilePath)
+                );
+
+                Assert.Equal(
+                    expected: new TimeSpan(00, 47, 01),
+                    actual: actual2.FileBeginOffset
+                );
+            }
+        );
     }
 
     [Theory]
