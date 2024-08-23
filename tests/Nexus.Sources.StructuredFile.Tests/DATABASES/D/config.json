@@ -15,7 +15,7 @@
         "'position_B'"
       ],
       "FileTemplate": "'__1_'yyyy-MM-dd_HH-mm-ss'_000000.dat'",
-      "FilePeriod": "1.00:00:00",
+      "FilePeriod": "01:00:00",
       "UtcOffset": "01:00:00"
     }]
   }

@@ -14,6 +14,7 @@ namespace Nexus.Sources;
 /// <param name="FileDateTimeSelector">An optional date/time selector which is mandatory when the preselector is provided. In case of a file named like "20200101_13_my-id_1234.dat", and a preselector of "(.{11})_my-id", the selector should be like "yyyyMMdd_HH".</param>
 /// <param name="FilePeriod">The period per file.</param>
 /// <param name="UtcOffset">The UTC offset of the file data.</param>
+/// <param name="IrregularTimeInterval">The file time interval is irregular. I.e. the file end is not aligned to multiples of the file period.</param>
 /// <param name="AdditionalProperties">Additional properties to be used by the data source implementation.</param>
 public record FileSource(
     DateTime Begin,
@@ -23,6 +24,7 @@ public record FileSource(
     string? FileDateTimeSelector,
     TimeSpan FilePeriod,
     TimeSpan UtcOffset,
+    bool IrregularTimeInterval,
     JsonElement? AdditionalProperties
 );
 

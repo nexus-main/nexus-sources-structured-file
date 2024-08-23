@@ -103,7 +103,7 @@ public class StructuredFileDataSourceTests
     [InlineData("DATABASES/A", "2019-12-31T12-00-00Z", "2020-01-02T00-20-00Z")]
     [InlineData("DATABASES/B", "2019-12-31T12-00-00Z", "2020-01-02T00-20-00Z")]
     [InlineData("DATABASES/C", "2019-12-31T12-00-00Z", "2020-01-02T00-20-00Z")]
-    [InlineData("DATABASES/D", "2019-12-31T10-00-00Z", "2020-01-02T23-00-00Z")]
+    [InlineData("DATABASES/D", "2019-12-31T10-00-00Z", "2020-01-02T01-00-00Z")]
     [InlineData("DATABASES/E", "2019-12-31T12-00-00Z", "2020-01-03T00-00-00Z")]
     [InlineData("DATABASES/F", "2019-12-31T12-00-00Z", "2020-01-02T02-00-00Z")]
     [InlineData("DATABASES/G", "2019-12-31T00-40-22Z", "2020-01-01T01-39-23Z")]
@@ -294,6 +294,7 @@ public class StructuredFileDataSourceTests
     [InlineData("L", "2020-01-01T00:00:00Z", "2020-01-04T00:00:00Z")]
     [InlineData("M", "2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z")]
     [InlineData("N", "2020-01-01T00:00:00Z", "2020-01-04T00:00:00Z")]
+    [InlineData("O", "2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z")]
     public async Task CanRead_ReadInfos(string database, string beginString, string endString)
     {
         // Arrange

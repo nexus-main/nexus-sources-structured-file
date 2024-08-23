@@ -1,0 +1,17 @@
+{
+  "/A/B/C": {
+    "default": [
+      {
+        "PathSegments": [
+          "'DATA'"
+        ],
+        "FileTemplate": "yyyy-MM-ddTHH-*Z'.dat'",
+        "FileDateTimePreselector": "(.{20})\\.dat",
+        "FileDateTimeSelector": "yyyy-MM-ddTHH-mm-ssZ",
+        "FilePeriod": "00:05:00",
+        "UtcOffset": "00:00:00",
+        "IrregularTimeInterval": true
+      }
+    ]
+  }
+}
