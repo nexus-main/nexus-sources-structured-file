@@ -279,7 +279,102 @@ public class StructuredFileDataSourceTests
     }
 
     [Fact]
-    public async Task CanReadSingle()
+    public async Task CanRead_Database_M()
+    {
+        // Arrange
+        var readInfos = new List<ReadInfo>();
+        var dataSource = new StructuredFileDataSourceTester(readInfos.Add) as IDataSource;
+
+        var context = new DataSourceContext(
+            ResourceLocator: new Uri(Path.Combine(Directory.GetCurrentDirectory(), "DATABASES/M")),
+            SystemConfiguration: default!,
+            SourceConfiguration: default!,
+            RequestConfiguration: default!);
+
+        await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
+
+        var catalog = await dataSource.GetCatalogAsync("/A/B/C", CancellationToken.None);
+        var resource = catalog.Resources![0];
+        var representation = resource.Representations![0];
+        var catalogItem = new CatalogItem(catalog, resource, representation, default);
+
+        var begin = new DateTime(2020, 01, 01, 0, 0, 0, DateTimeKind.Utc);
+        var end = new DateTime(2020, 01, 02, 0, 0, 0, DateTimeKind.Utc);
+        var (data, status) = ExtensibilityUtilities.CreateBuffers(representation, begin, end);
+
+        var request = new ReadRequest(catalogItem, data, status);
+
+        // Act
+        await dataSource.ReadAsync(
+            begin,
+            end,
+            [request, request],
+            default!,
+            new Progress<double>(), CancellationToken.None
+        );
+
+        // Assert
+        Assert.Collection(readInfos.OrderBy(x => x.FilePath),
+
+            actual =>
+            {
+                Assert.Equal(1477, actual.FileBlock);
+                Assert.Equal(3600, actual.FileLength);
+                Assert.Equal(0, actual.FileOffset);
+                Assert.Equal(new DateTime(2020, 01, 01, 01, 00, 00, DateTimeKind.Utc), actual.RegularFileBegin);
+                Assert.EndsWith("01-35-23Z.dat", actual.FilePath);
+            },
+
+            actual =>
+            {
+                Assert.Equal(779, actual.FileBlock);
+                Assert.Equal(3600, actual.FileLength);
+                Assert.Equal(0, actual.FileOffset);
+                Assert.Equal(new DateTime(2020, 01, 01, 01, 00, 00, DateTimeKind.Utc), actual.RegularFileBegin);
+                Assert.EndsWith("01-47-01Z.dat", actual.FilePath);
+            },
+
+            actual =>
+            {
+                Assert.Equal(1990, actual.FileBlock);
+                Assert.Equal(3600, actual.FileLength);
+                Assert.Equal(0, actual.FileOffset);
+                Assert.Equal(new DateTime(2020, 01, 01, 02, 00, 00, DateTimeKind.Utc), actual.RegularFileBegin);
+                Assert.EndsWith("02-26-50Z.dat", actual.FilePath);
+            },
+
+            actual =>
+            {
+                Assert.Equal(3600, actual.FileBlock);
+                Assert.Equal(3600, actual.FileLength);
+                Assert.Equal(0, actual.FileOffset);
+                Assert.Equal(new DateTime(2020, 01, 01, 03, 00, 00, DateTimeKind.Utc), actual.RegularFileBegin);
+                Assert.EndsWith("03-00-00Z.dat", actual.FilePath);
+            },
+
+            actual =>
+            {
+                Assert.Equal(3600, actual.FileBlock);
+                Assert.Equal(3600, actual.FileLength);
+                Assert.Equal(0, actual.FileOffset);
+                Assert.Equal(new DateTime(2020, 01, 01, 04, 00, 00, DateTimeKind.Utc), actual.RegularFileBegin);
+                Assert.EndsWith("04-00-00Z.dat", actual.FilePath);
+            },
+
+            actual =>
+            {
+                Assert.Equal(2686, actual.FileBlock);
+                Assert.Equal(3600, actual.FileLength);
+                Assert.Equal(0, actual.FileOffset);
+                Assert.Equal(new DateTime(2020, 01, 01, 04, 00, 00, DateTimeKind.Utc), actual.RegularFileBegin);
+                Assert.EndsWith("04-15-14Z.dat", actual.FilePath);
+            }
+
+        );
+    }
+
+    [Fact]
+    public async Task CanRead()
     {
         var dataSource = new StructuredFileDataSourceTester() as IDataSource;
 

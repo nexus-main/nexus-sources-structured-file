@@ -5,6 +5,15 @@ namespace Nexus.Sources.Tests;
 
 public class StructuredFileDataSourceTester : StructuredFileDataSource
 {
+    private readonly Action<ReadInfo>? _onNewReadInfo;
+    
+    public StructuredFileDataSourceTester(
+        Action<ReadInfo>? onNewReadInfo = default
+    )
+    {
+        _onNewReadInfo = onNewReadInfo;
+    }
+
     public Dictionary<string, Dictionary<string, IReadOnlyList<FileSource>>> Config { get; private set; } = default!;
 
     public new Task<(DateTime RegularUtcFileBegin, IEnumerable<(string FilePath, TimeSpan FileBeginOffset)>)> 
@@ -55,6 +64,8 @@ public class StructuredFileDataSourceTester : StructuredFileDataSource
 
     protected override async Task ReadAsync(ReadInfo readInfo, StructuredFileReadRequest[] readRequests, CancellationToken cancellationToken)
     {
+        _onNewReadInfo?.Invoke(readInfo);
+
         var bytes = await File
             .ReadAllBytesAsync(readInfo.FilePath, cancellationToken);
 
