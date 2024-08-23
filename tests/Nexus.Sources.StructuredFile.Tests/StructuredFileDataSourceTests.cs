@@ -87,7 +87,9 @@ public class StructuredFileDataSourceTests
             .GetType()
             .GetMethod(
                 "TryGetFirstFile",
-                BindingFlags.NonPublic | BindingFlags.Instance) ?? throw new Exception("method info is null");
+                BindingFlags.NonPublic | BindingFlags.Instance
+            ) ?? throw new Exception("method info is null");
+            
         var config = tester.Config.Values.First().Values.First()[0];
 
         var args = new object[] { config, default! };
@@ -100,7 +102,7 @@ public class StructuredFileDataSourceTests
     [InlineData("DATABASES/A", "2019-12-31T12-00-00Z", "2020-01-02T00-20-00Z")]
     [InlineData("DATABASES/B", "2019-12-31T12-00-00Z", "2020-01-02T00-20-00Z")]
     [InlineData("DATABASES/C", "2019-12-31T12-00-00Z", "2020-01-02T00-20-00Z")]
-    [InlineData("DATABASES/D", "2019-12-31T10-00-00Z", "2020-01-02T01-00-00Z")]
+    [InlineData("DATABASES/D", "2019-12-31T10-00-00Z", "2020-01-02T23-00-00Z")]
     [InlineData("DATABASES/E", "2019-12-31T12-00-00Z", "2020-01-03T00-00-00Z")]
     [InlineData("DATABASES/F", "2019-12-31T12-00-00Z", "2020-01-02T02-00-00Z")]
     [InlineData("DATABASES/G", "2019-12-31T00-40-22Z", "2020-01-01T01-39-23Z")]

@@ -139,34 +139,38 @@ public abstract class StructuredFileDataSource : IDataSource
                         Logger.LogDebug("Analyzing file source");
 
                         // first
-                        var firstDateTime = GetCandidateFiles(Root, DateTime.MinValue, DateTime.MinValue, fileSource, cancellationToken)
+                        var firstUtcDateTime = GetCandidateFiles(Root, DateTime.MinValue, DateTime.MinValue, fileSource, cancellationToken)
                             .Select(file => file.DateTimeOffset.UtcDateTime)
                             .OrderBy(current => current)
                             .FirstOrDefault();
 
-                        if (firstDateTime == default)
-                            firstDateTime = DateTime.MaxValue;
+                        if (firstUtcDateTime == default)
+                            firstUtcDateTime = DateTime.MaxValue;
 
-                        if (firstDateTime < minDateTime)
-                            minDateTime = firstDateTime;
+                        if (firstUtcDateTime < minDateTime)
+                            minDateTime = firstUtcDateTime;
 
                         // last
-                        var lastDateTime = GetCandidateFiles(Root, DateTime.MaxValue, DateTime.MaxValue, fileSource, cancellationToken)
-                            .Select(file => file.DateTimeOffset.UtcDateTime)
-                            .OrderByDescending(current => current)
+                        var lastDateTimeOffset = GetCandidateFiles(Root, DateTime.MaxValue, DateTime.MaxValue, fileSource, cancellationToken)
+                            .OrderByDescending(current => current.DateTimeOffset.DateTime)
                             .FirstOrDefault();
 
-                        if (lastDateTime == default)
-                            lastDateTime = DateTime.MinValue;
-
-                        lastDateTime = lastDateTime
+                        var lastDateTimeModified = lastDateTimeOffset.DateTimeOffset.DateTime
                             .RoundDown(fileSource.FilePeriod)
                             .Add(fileSource.FilePeriod);
 
-                        if (lastDateTime > maxDateTime)
-                            maxDateTime = lastDateTime;
+                        var lastUtcDateTime = new CustomDateTimeOffset(
+                            lastDateTimeModified,
+                            lastDateTimeOffset.DateTimeOffset.Offset
+                        ).UtcDateTime;
 
-                        Logger.LogDebug("Analyzing file source resulted in begin = {FirstDateTime} and end = {LastDateTime}", firstDateTime, lastDateTime);
+                        if (lastUtcDateTime == default)
+                            lastUtcDateTime = DateTime.MinValue;
+
+                        if (lastUtcDateTime > maxDateTime)
+                            maxDateTime = lastUtcDateTime;
+
+                        Logger.LogDebug("Analyzing file source resulted in begin = {FirstDateTime} and end = {LastDateTime}", firstUtcDateTime, lastUtcDateTime);
                     }
                 }
             }
