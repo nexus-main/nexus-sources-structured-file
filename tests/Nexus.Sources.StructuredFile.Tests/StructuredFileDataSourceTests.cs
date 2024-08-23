@@ -3,6 +3,7 @@ using Nexus.DataModel;
 using Nexus.Extensibility;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using Xunit;
@@ -278,15 +279,29 @@ public class StructuredFileDataSourceTests
             dataSource.GetAvailabilityAsync("/A/B/C", begin, end, CancellationToken.None));
     }
 
-    [Fact]
-    public async Task CanRead_Database_M()
+    [Theory]
+    [InlineData("A", "2019-12-31T00:00:00Z", "2020-01-03T00:00:00Z")]
+    [InlineData("B", "2019-12-31T00:00:00Z", "2020-01-03T00:00:00Z")]
+    [InlineData("C", "2019-12-31T00:00:00Z", "2020-01-03T00:00:00Z")]
+    [InlineData("D", "2019-12-31T00:00:00Z", "2020-01-03T00:00:00Z")]
+    [InlineData("E", "2019-12-31T00:00:00Z", "2020-01-03T00:00:00Z")]
+    [InlineData("F", "2019-12-31T00:00:00Z", "2020-01-03T00:00:00Z")]
+    [InlineData("G", "2019-12-31T00:00:00Z", "2020-01-02T00:00:00Z")]
+    [InlineData("H", "2019-12-31T00:00:00Z", "2020-01-03T00:00:00Z")]
+    [InlineData("I", "2019-12-31T00:00:00Z", "2020-01-02T00:00:00Z")]
+    [InlineData("J", "2020-01-01T00:00:00Z", "2020-01-05T00:00:00Z")]
+    [InlineData("K", "2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z")]
+    [InlineData("L", "2020-01-01T00:00:00Z", "2020-01-04T00:00:00Z")]
+    [InlineData("M", "2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z")]
+    [InlineData("N", "2020-01-01T00:00:00Z", "2020-01-04T00:00:00Z")]
+    public async Task CanRead_ReadInfos(string database, string beginString, string endString)
     {
         // Arrange
         var readInfos = new List<ReadInfo>();
         var dataSource = new StructuredFileDataSourceTester(readInfos.Add) as IDataSource;
 
         var context = new DataSourceContext(
-            ResourceLocator: new Uri(Path.Combine(Directory.GetCurrentDirectory(), "DATABASES/M")),
+            ResourceLocator: new Uri(Path.Combine(Directory.GetCurrentDirectory(), $"DATABASES/{database}")),
             SystemConfiguration: default!,
             SourceConfiguration: default!,
             RequestConfiguration: default!);
@@ -298,8 +313,8 @@ public class StructuredFileDataSourceTests
         var representation = resource.Representations![0];
         var catalogItem = new CatalogItem(catalog, resource, representation, default);
 
-        var begin = new DateTime(2020, 01, 01, 0, 0, 0, DateTimeKind.Utc);
-        var end = new DateTime(2020, 01, 02, 0, 0, 0, DateTimeKind.Utc);
+        var begin = DateTime.ParseExact(beginString, "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
+        var end = DateTime.ParseExact(endString, "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
         var (data, status) = ExtensibilityUtilities.CreateBuffers(representation, begin, end);
 
         var request = new ReadRequest(catalogItem, data, status);
@@ -314,63 +329,21 @@ public class StructuredFileDataSourceTests
         );
 
         // Assert
-        Assert.Collection(readInfos.OrderBy(x => x.FilePath),
+        var preparedReadInfos = readInfos
+            .Select(x => x with 
+                { 
+                    FileSource = default!,
+                    FilePath = x.FilePath.Split("Nexus.Sources.StructuredFile.Tests")[1]
+                }
+            )
+            .OrderBy(x => x.FilePath);
 
-            actual =>
-            {
-                Assert.Equal(1477, actual.FileBlock);
-                Assert.Equal(3600, actual.FileLength);
-                Assert.Equal(0, actual.FileOffset);
-                Assert.Equal(new DateTime(2020, 01, 01, 01, 00, 00, DateTimeKind.Utc), actual.RegularFileBegin);
-                Assert.EndsWith("01-35-23Z.dat", actual.FilePath);
-            },
+        var actualJsonString = JsonSerializer.Serialize(preparedReadInfos, new JsonSerializerOptions { WriteIndented = true });
+        // File.WriteAllText($"{database}.json", actualJsonString);
 
-            actual =>
-            {
-                Assert.Equal(779, actual.FileBlock);
-                Assert.Equal(3600, actual.FileLength);
-                Assert.Equal(0, actual.FileOffset);
-                Assert.Equal(new DateTime(2020, 01, 01, 01, 00, 00, DateTimeKind.Utc), actual.RegularFileBegin);
-                Assert.EndsWith("01-47-01Z.dat", actual.FilePath);
-            },
+        var expectedJsonString = File.ReadAllText($"expected/{database}.json");
 
-            actual =>
-            {
-                Assert.Equal(1990, actual.FileBlock);
-                Assert.Equal(3600, actual.FileLength);
-                Assert.Equal(0, actual.FileOffset);
-                Assert.Equal(new DateTime(2020, 01, 01, 02, 00, 00, DateTimeKind.Utc), actual.RegularFileBegin);
-                Assert.EndsWith("02-26-50Z.dat", actual.FilePath);
-            },
-
-            actual =>
-            {
-                Assert.Equal(3600, actual.FileBlock);
-                Assert.Equal(3600, actual.FileLength);
-                Assert.Equal(0, actual.FileOffset);
-                Assert.Equal(new DateTime(2020, 01, 01, 03, 00, 00, DateTimeKind.Utc), actual.RegularFileBegin);
-                Assert.EndsWith("03-00-00Z.dat", actual.FilePath);
-            },
-
-            actual =>
-            {
-                Assert.Equal(3600, actual.FileBlock);
-                Assert.Equal(3600, actual.FileLength);
-                Assert.Equal(0, actual.FileOffset);
-                Assert.Equal(new DateTime(2020, 01, 01, 04, 00, 00, DateTimeKind.Utc), actual.RegularFileBegin);
-                Assert.EndsWith("04-00-00Z.dat", actual.FilePath);
-            },
-
-            actual =>
-            {
-                Assert.Equal(2686, actual.FileBlock);
-                Assert.Equal(3600, actual.FileLength);
-                Assert.Equal(0, actual.FileOffset);
-                Assert.Equal(new DateTime(2020, 01, 01, 04, 00, 00, DateTimeKind.Utc), actual.RegularFileBegin);
-                Assert.EndsWith("04-15-14Z.dat", actual.FilePath);
-            }
-
-        );
+        Assert.Equal(expectedJsonString, actualJsonString);
     }
 
     [Fact]

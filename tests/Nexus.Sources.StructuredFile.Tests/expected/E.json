@@ -1,0 +1,18 @@
+[
+  {
+    "FilePath": "/debug/DATABASES/E/DATA/2020-01/prefix_average_data_2020-01-01_00-00-00.dat",
+    "FileSource": null,
+    "RegularFileBegin": "2020-01-01T00:00:00Z",
+    "FileOffset": 0,
+    "FileBlock": 86400,
+    "FileLength": 86400
+  },
+  {
+    "FilePath": "/debug/DATABASES/E/DATA/2020-01/prefix_average_data_2020-01-02_00-00-00.dat",
+    "FileSource": null,
+    "RegularFileBegin": "2020-01-02T00:00:00Z",
+    "FileOffset": 0,
+    "FileBlock": 86400,
+    "FileLength": 86400
+  }
+]

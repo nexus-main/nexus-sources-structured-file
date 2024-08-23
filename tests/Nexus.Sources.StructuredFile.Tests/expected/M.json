@@ -1,0 +1,50 @@
+[
+  {
+    "FilePath": "/debug/DATABASES/M/DATA/2020-01-01T01-35-23Z.dat",
+    "FileSource": null,
+    "RegularFileBegin": "2020-01-01T01:00:00Z",
+    "FileOffset": 0,
+    "FileBlock": 1477,
+    "FileLength": 3600
+  },
+  {
+    "FilePath": "/debug/DATABASES/M/DATA/2020-01-01T01-47-01Z.dat",
+    "FileSource": null,
+    "RegularFileBegin": "2020-01-01T01:00:00Z",
+    "FileOffset": 0,
+    "FileBlock": 779,
+    "FileLength": 3600
+  },
+  {
+    "FilePath": "/debug/DATABASES/M/DATA/2020-01-01T02-26-50Z.dat",
+    "FileSource": null,
+    "RegularFileBegin": "2020-01-01T02:00:00Z",
+    "FileOffset": 0,
+    "FileBlock": 1990,
+    "FileLength": 3600
+  },
+  {
+    "FilePath": "/debug/DATABASES/M/DATA/2020-01-01T03-00-00Z.dat",
+    "FileSource": null,
+    "RegularFileBegin": "2020-01-01T03:00:00Z",
+    "FileOffset": 0,
+    "FileBlock": 3600,
+    "FileLength": 3600
+  },
+  {
+    "FilePath": "/debug/DATABASES/M/DATA/2020-01-01T04-00-00Z.dat",
+    "FileSource": null,
+    "RegularFileBegin": "2020-01-01T04:00:00Z",
+    "FileOffset": 0,
+    "FileBlock": 3600,
+    "FileLength": 3600
+  },
+  {
+    "FilePath": "/debug/DATABASES/M/DATA/2020-01-01T04-15-14Z.dat",
+    "FileSource": null,
+    "RegularFileBegin": "2020-01-01T04:00:00Z",
+    "FileOffset": 0,
+    "FileBlock": 2686,
+    "FileLength": 3600
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "FilePath": "/debug/DATABASES/C/DATA/2019-12-31/__0_2019-12-31_12-00-00_000000.dat",
+    "FileSource": null,
+    "RegularFileBegin": "2019-12-31T12:00:00Z",
+    "FileOffset": 0,
+    "FileBlock": 600,
+    "FileLength": 600
+  },
+  {
+    "FilePath": "/debug/DATABASES/C/DATA/2020-01-02/__0_2020-01-02_00-00-00_000000.dat",
+    "FileSource": null,
+    "RegularFileBegin": "2020-01-02T00:00:00Z",
+    "FileOffset": 0,
+    "FileBlock": 600,
+    "FileLength": 600
+  },
+  {
+    "FilePath": "/debug/DATABASES/C/DATA/2020-01-02/__0_2020-01-02_00-10-00_000000.dat",
+    "FileSource": null,
+    "RegularFileBegin": "2020-01-02T00:10:00Z",
+    "FileOffset": 0,
+    "FileBlock": 600,
+    "FileLength": 600
+  }
+]

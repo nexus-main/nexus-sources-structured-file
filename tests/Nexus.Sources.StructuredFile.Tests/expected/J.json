@@ -1,0 +1,26 @@
+[
+  {
+    "FilePath": "/debug/DATABASES/J/DATA1/2020_01_01.dat",
+    "FileSource": null,
+    "RegularFileBegin": "2020-01-01T00:00:00Z",
+    "FileOffset": 0,
+    "FileBlock": 86400,
+    "FileLength": 86400
+  },
+  {
+    "FilePath": "/debug/DATABASES/J/DATA1/2020-01-02.dat",
+    "FileSource": null,
+    "RegularFileBegin": "2020-01-02T00:00:00Z",
+    "FileOffset": 0,
+    "FileBlock": 86400,
+    "FileLength": 86400
+  },
+  {
+    "FilePath": "/debug/DATABASES/J/DATA2/2020-01-04.dat",
+    "FileSource": null,
+    "RegularFileBegin": "2020-01-04T00:00:00Z",
+    "FileOffset": 0,
+    "FileBlock": 86400,
+    "FileLength": 86400
+  }
+]
