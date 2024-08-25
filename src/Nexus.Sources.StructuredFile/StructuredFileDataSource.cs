@@ -155,9 +155,14 @@ public abstract class StructuredFileDataSource : IDataSource
                             .OrderByDescending(current => current.DateTimeOffset.DateTime)
                             .FirstOrDefault();
 
-                        var lastDateTimeModified = lastDateTimeOffset.DateTimeOffset.DateTime
-                            .RoundDown(fileSource.FilePeriod)
-                            .Add(fileSource.FilePeriod);
+                        var lastDateTimeModified = fileSource.IrregularTimeInterval
+
+                            ? lastDateTimeOffset.DateTimeOffset.DateTime
+                                .Add(fileSource.FilePeriod)
+
+                            : lastDateTimeOffset.DateTimeOffset.DateTime
+                                .RoundDown(fileSource.FilePeriod)
+                                .Add(fileSource.FilePeriod);
 
                         var lastUtcDateTime = new CustomDateTimeOffset(
                             lastDateTimeModified,
