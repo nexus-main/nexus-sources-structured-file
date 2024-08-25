@@ -114,6 +114,7 @@ public class StructuredFileDataSourceTests
     [InlineData("DATABASES/L", "2020-01-01T00-00-00Z", "2020-01-04T00-00-00Z")]
     [InlineData("DATABASES/M", "2020-01-01T01-35-23Z", "2020-01-01T05-00-00Z")]
     [InlineData("DATABASES/N", "2019-12-31T12-00-00Z", "2020-01-03T12-00-00Z")]
+    [InlineData("DATABASES/O", "2020-01-01T00-35-23Z", "2020-01-01T01-00-10Z")]
     public async Task CanProvideTimeRange(string root, string expectedBeginString, string expectedEndString)
     {
         var expectedBegin = DateTime.ParseExact(expectedBeginString, "yyyy-MM-ddTHH-mm-ssZ", null, DateTimeStyles.AdjustToUniversal);
@@ -150,6 +151,7 @@ public class StructuredFileDataSourceTests
     [InlineData("DATABASES/L", "2020-01-01T00-00-00Z", "2020-01-04T00-00-00Z", 1, 0)]
     [InlineData("DATABASES/M", "2020-01-01T00-00-00Z", "2020-01-02T00-00-00Z", 4 / 24.0, 3)]
     [InlineData("DATABASES/N", "2020-01-01T00-00-00Z", "2020-01-03T00-00-00Z", 7 / 8.0, 2)]
+    [InlineData("DATABASES/O", "2020-01-01T00-00-00Z", "2020-01-02T00-00-00Z", 3 / 288.0, 4)]
     public async Task CanProvideAvailability(string root, string beginString, string endString, double expected, int precision)
     {
         // Arrange

@@ -547,14 +547,7 @@ public abstract class StructuredFileDataSource : IDataSource
         StructuredFileReadRequest[] readRequests,
         CancellationToken cancellationToken);
 
-    /// <summary>
-    /// Finds files given the date/time and the <see cref="FileSource"/>.
-    /// </summary>
-    /// <param name="begin">The begin date/time (UTC).</param>
-    /// <param name="fileSource">The file source.</param>
-    /// <returns>The regular file begin (UTC) and a list of tuples of the found file paths and the offset to the regular file begin. This is non-zero for incomplete files.</returns>
-    /// <exception cref="ArgumentException">Thrown when the begin value does not have its kind property set.</exception>
-    protected virtual Task<(DateTime RegularUtcFileBegin, IEnumerable<(string FilePath, TimeSpan FileBeginOffset)>)> 
+    private protected Task<(DateTime RegularUtcFileBegin, IEnumerable<(string FilePath, TimeSpan FileBeginOffset)>)> 
         FindFileBeginAndPathsAsync(DateTime begin, FileSource fileSource)
     {
         /* This implementation assumes that files are stored in regular time intervals.
