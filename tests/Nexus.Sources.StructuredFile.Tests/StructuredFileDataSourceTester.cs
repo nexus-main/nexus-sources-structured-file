@@ -46,8 +46,9 @@ public class StructuredFileDataSourceTester : StructuredFileDataSource
     protected override Task<ResourceCatalog> GetCatalogAsync(string catalogId, CancellationToken cancellationToken)
     {
         var representation = new Representation(
-                dataType: NexusDataType.INT64,
-                samplePeriod: TimeSpan.FromSeconds(1));
+            dataType: NexusDataType.INT64,
+            samplePeriod: TimeSpan.FromSeconds(1)
+        );
 
         var fileSourceId = Config.First().Value.First().Key;
 

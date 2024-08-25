@@ -1,5 +1,6 @@
 [
   {
+    "BufferOffset": 2123,
     "FilePath": "/debug/DATABASES/O/DATA/2020-01-01T00-35-23Z.dat",
     "FileSource": null,
     "RegularFileBegin": "2020-01-01T00:35:00Z",
@@ -8,6 +9,7 @@
     "FileLength": 300
   },
   {
+    "BufferOffset": 2400,
     "FilePath": "/debug/DATABASES/O/DATA/2020-01-01T00-35-23Z.dat",
     "FileSource": null,
     "RegularFileBegin": "2020-01-01T00:40:00Z",
@@ -16,6 +18,7 @@
     "FileLength": 300
   },
   {
+    "BufferOffset": 2700,
     "FilePath": "/debug/DATABASES/O/DATA/2020-01-01T00-45-00Z.dat",
     "FileSource": null,
     "RegularFileBegin": "2020-01-01T00:45:00Z",
@@ -24,6 +27,7 @@
     "FileLength": 300
   },
   {
+    "BufferOffset": 3310,
     "FilePath": "/debug/DATABASES/O/DATA/2020-01-01T00-55-10Z.dat",
     "FileSource": null,
     "RegularFileBegin": "2020-01-01T00:55:00Z",
@@ -32,6 +36,7 @@
     "FileLength": 300
   },
   {
+    "BufferOffset": 3600,
     "FilePath": "/debug/DATABASES/O/DATA/2020-01-01T00-55-10Z.dat",
     "FileSource": null,
     "RegularFileBegin": "2020-01-01T01:00:00Z",

@@ -38,6 +38,13 @@ public record FileSource(
 /// <param name="FileBlock">The element count to read from the file.</param>
 /// <param name="FileLength">The expected total number of elements within the file.</param>
 public record ReadInfo(
+
+#if DEBUG
+#pragma warning disable CS1573
+    int BufferOffset,
+#pragma warning restore CS1573
+#endif
+
     string FilePath,
     FileSource FileSource,
     DateTime RegularFileBegin,

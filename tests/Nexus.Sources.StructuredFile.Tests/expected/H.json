@@ -1,5 +1,6 @@
 [
   {
+    "BufferOffset": 43200,
     "FilePath": "/debug/DATABASES/H/2019-12-31_12-00-00.dat",
     "FileSource": null,
     "RegularFileBegin": "2019-12-31T12:00:00Z",
@@ -8,6 +9,7 @@
     "FileLength": 600
   },
   {
+    "BufferOffset": 172800,
     "FilePath": "/debug/DATABASES/H/2020-01-02_00-00-00.dat",
     "FileSource": null,
     "RegularFileBegin": "2020-01-02T00:00:00Z",
@@ -16,6 +18,7 @@
     "FileLength": 600
   },
   {
+    "BufferOffset": 173400,
     "FilePath": "/debug/DATABASES/H/2020-01-02_00-10-00.dat",
     "FileSource": null,
     "RegularFileBegin": "2020-01-02T00:10:00Z",

@@ -480,6 +480,9 @@ public abstract class StructuredFileDataSource : IDataSource
                                     }).ToArray();
 
                                     var readInfo = new ReadInfo(
+#if DEBUG
+                                        actualBufferOffset,
+#endif
                                         filePath,
                                         fileSource,
                                         regularUtcFileBegin,
