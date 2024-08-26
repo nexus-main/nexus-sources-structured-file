@@ -16,7 +16,7 @@ public class StructuredFileDataSourceTester : StructuredFileDataSource
 
     public Dictionary<string, Dictionary<string, IReadOnlyList<FileSource>>> Config { get; private set; } = default!;
 
-    public new Task<(DateTime RegularUtcFileBegin, IEnumerable<(string FilePath, TimeSpan FileBeginOffset)>)> 
+    public new Task<(DateTime RegularUtcFileBegin, (string FilePath, TimeSpan FileBeginOffset)[])> 
         FindFileBeginAndPathsAsync(DateTime begin, FileSource fileSource)
     {
         return base.FindFileBeginAndPathsAsync(begin, fileSource);

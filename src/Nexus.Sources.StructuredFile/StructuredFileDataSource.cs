@@ -402,7 +402,7 @@ public abstract class StructuredFileDataSource : IDataSource
                         var consumedFilePeriod = currentBegin - regularUtcFileBegin;
                         var remainingFilePeriod = fileSource.FilePeriod - consumedFilePeriod;
                         var currentPeriod = TimeSpan.FromTicks(Math.Min(remainingFilePeriod.Ticks, remainingPeriod.Ticks));
-                        
+
                         Logger.LogTrace("Process period {CurrentBegin} to {CurrentEnd}", currentBegin, currentBegin + currentPeriod);
 
                         var fileBlock = (int)(currentPeriod.Ticks / samplePeriod.Ticks);
@@ -410,6 +410,16 @@ public abstract class StructuredFileDataSource : IDataSource
 
                         foreach (var (filePath, fileBeginOffset) in fileInfos)
                         {
+                            /* This happens when FindFileBeginAndPathsAsync did not find files for the current time period */
+                            if (fileBeginOffset >= fileSource.FilePeriod)
+                            {
+                                /* Modify loop status update variables and leave the loop */
+                                currentPeriod = fileBeginOffset.RoundDown(fileSource.FilePeriod);
+                                fileBlock = (int)(currentPeriod.Ticks / samplePeriod.Ticks);
+
+                                break;
+                            }
+
                             if (File.Exists(filePath))
                             {
                                 // compensate offsets and lengths in case of incomplete or irregular file
@@ -423,7 +433,7 @@ public abstract class StructuredFileDataSource : IDataSource
                                             ? 0
 
                                             /* The irregular or incomplete file contains no data for the current buffer position, so compensate for it */
-                                            : + fileCompensation
+                                            : +fileCompensation
                                     );
 
                                 /* The irregular or incomplete file contains not enough data, so make the file block smaller */
@@ -435,15 +445,15 @@ public abstract class StructuredFileDataSource : IDataSource
                                         fileCompensation < 0 /* = irregular file */
 
                                             /* The irregular file starts earlier than expected, so compensate for it */
-                                            ? - fileCompensation
+                                            ? -fileCompensation
 
                                             /* The irregular or incomplete file starts later than expected */
-                                            : - fileCompensation
+                                            : -fileCompensation
                                     );
 
                                 /* The maximum value for fileCompensation is MaxFileBlock = FilePeriod / SamplePeriod
-                                 * so there is no need to check for actualFileOffset >= MaxFileBlock.
-                                 * However, it might happen that actualFileOffset < 0. This must be compensated. */
+                                * so there is no need to check for actualFileOffset >= MaxFileBlock.
+                                * However, it might happen that actualFileOffset < 0. This must be compensated. */
                                 if (actualFileOffset < 0)
                                     actualFileOffset = 0;
 
@@ -458,13 +468,13 @@ public abstract class StructuredFileDataSource : IDataSource
 
                                         var slicedData = request.Data
                                             .Slice(
-                                                start: actualBufferOffset * representation.ElementSize, 
+                                                start: actualBufferOffset * representation.ElementSize,
                                                 length: actualFileBlock * representation.ElementSize
                                             );
 
                                         var slicedStatus = request.Status
                                             .Slice(
-                                                start: actualBufferOffset, 
+                                                start: actualBufferOffset,
                                                 length: actualFileBlock
                                             );
 
@@ -534,7 +544,7 @@ public abstract class StructuredFileDataSource : IDataSource
                 Logger.LogError(ex, "Could not read file source group");
             }
 
-            ++fileSourceGroupIndex;
+            fileSourceGroupIndex++;
         }
     }
 
@@ -550,7 +560,7 @@ public abstract class StructuredFileDataSource : IDataSource
         StructuredFileReadRequest[] readRequests,
         CancellationToken cancellationToken);
 
-    private protected Task<(DateTime RegularUtcFileBegin, IEnumerable<(string FilePath, TimeSpan FileBeginOffset)>)> 
+    private protected Task<(DateTime RegularUtcFileBegin, (string FilePath, TimeSpan FileBeginOffset)[])> 
         FindFileBeginAndPathsAsync(DateTime begin, FileSource fileSource)
     {
         /* This implementation assumes that files are stored in regular time intervals.
@@ -588,7 +598,7 @@ public abstract class StructuredFileDataSource : IDataSource
             fileSource.UtcOffset
         ).UtcDateTime;
 
-        IEnumerable<(string FilePath, TimeSpan FileBeginOffset)> fileInfos;
+        (string FilePath, TimeSpan FileBeginOffset)[] fileInfos;
 
         if (fileSource.FileTemplate.Contains('?') || fileSource.FileTemplate.Contains('*'))
         {
@@ -598,14 +608,18 @@ public abstract class StructuredFileDataSource : IDataSource
 
             var regularUtcFileEnd = regularUtcFileBegin + fileSource.FilePeriod;
 
-            fileInfos = GetCandidateFiles(
+            // get all files that match the pattern
+            var tmpFileInfos = GetCandidateFiles(
                 rootPath: Root,
                 begin: regularUtcFileBegin,
                 end: regularUtcFileBegin + fileSource.FilePeriod,
                 fileSource,
                 CancellationToken.None
             )
-            .Where(current =>
+            .ToArray();
+
+            // keep only files for current period
+            fileInfos = tmpFileInfos.Where(current =>
             {
                 if (fileSource.IrregularTimeInterval)
                 {
@@ -621,7 +635,19 @@ public abstract class StructuredFileDataSource : IDataSource
                         current.DateTimeOffset.UtcDateTime < regularUtcFileEnd;
                 }
             })
-            .Select(current => (current.FilePath, current.DateTimeOffset.UtcDateTime - regularUtcFileBegin));
+            .Select(current => (current.FilePath, current.DateTimeOffset.UtcDateTime - regularUtcFileBegin))
+            .ToArray();
+
+            // no files left for current time period - try to find next file after this period
+            if (!fileInfos.Any())
+            {
+                fileInfos = tmpFileInfos
+                    .OrderBy(x => x.DateTimeOffset.DateTime)
+                    .Where(current => regularUtcFileEnd <= current.DateTimeOffset.UtcDateTime)
+                    .Select(current => (current.FilePath, current.DateTimeOffset.UtcDateTime - regularUtcFileBegin))
+                    .Take(1)
+                    .ToArray();
+            }
         }
 
         else
