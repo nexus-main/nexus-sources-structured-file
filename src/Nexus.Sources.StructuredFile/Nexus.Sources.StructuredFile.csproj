@@ -11,6 +11,10 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
+  <PropertyGroup "'$(GeneratePackage)'=='true'">
+    <DefineConstants>$(DefineConstants);IS_PUBLISH_BUILD</DefineConstants>
+  </PropertyGroup>
+
   <!-- This prevents the package to be rebuilt when dotnet test is executed. -->
   <PropertyGroup Condition="$(GeneratePackage) == 'true'">
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>

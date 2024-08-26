@@ -490,7 +490,7 @@ public abstract class StructuredFileDataSource : IDataSource
                                     }).ToArray();
 
                                     var readInfo = new ReadInfo(
-#if DEBUG
+#if !IS_PUBLISH_BUILD
                                         actualBufferOffset,
 #endif
                                         filePath,

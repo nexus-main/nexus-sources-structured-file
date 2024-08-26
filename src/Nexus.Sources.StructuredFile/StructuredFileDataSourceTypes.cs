@@ -41,7 +41,7 @@ public record FileSource(
 /// <param name="FileLength">The expected total number of elements within the file.</param>
 public record ReadInfo(
 
-#if DEBUG
+#if !IS_PUBLISH_BUILD
 #pragma warning disable CS1573
     int BufferOffset,
 #pragma warning restore CS1573
