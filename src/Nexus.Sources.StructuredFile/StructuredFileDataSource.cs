@@ -582,7 +582,8 @@ public abstract class StructuredFileDataSource : IDataSource
             ? DateTime.SpecifyKind(begin.Add(fileSource.UtcOffset), DateTimeKind.Local)
             : throw new ArgumentException("The begin parameter must of kind UTC.");
 
-        var localFileBegin = localBegin.RoundDown(fileSource.FilePeriod);
+        var localFileBegin = localBegin
+            .RoundDown(fileSource.FilePeriod);
 
         var folderNames = fileSource
             .PathSegments
@@ -652,6 +653,10 @@ public abstract class StructuredFileDataSource : IDataSource
 
         else
         {
+            /* correct local file begin */
+            if (fileSource.FileNameOffset != TimeSpan.Zero)
+                localFileBegin = localFileBegin.Add(fileSource.FileNameOffset);
+
             var folderPath = Path.Combine(folderNameArray);
             var fileName = localFileBegin.ToString(fileSource.FileTemplate);
 
@@ -981,7 +986,7 @@ public abstract class StructuredFileDataSource : IDataSource
         CustomDateTimeOffset folderBegin = default)
     {
         var fileName = Path.GetFileName(filePath);
-        bool isSuccess;
+        bool success;
 
         if (TryGetFileBeginByName_AnyKind(fileName, fileSource, out fileBegin))
         {
@@ -991,7 +996,7 @@ public abstract class StructuredFileDataSource : IDataSource
             // date+time: use file date/time
             if (fileBegin.DateTime.Date != default)
             {
-                isSuccess = true;
+                success = true;
             }
 
             // time-only: use combined folder and file date/time
@@ -1004,7 +1009,7 @@ public abstract class StructuredFileDataSource : IDataSource
                         new DateTime(folderBegin.DateTime.Date.Ticks + fileBegin.DateTime.TimeOfDay.Ticks),
                         fileBegin.Offset);
 
-                    isSuccess = true;
+                    success = true;
                 }
 
                 // long way
@@ -1016,7 +1021,7 @@ public abstract class StructuredFileDataSource : IDataSource
                         new DateTime(folderBegin.DateTime.Ticks + fileBegin.DateTime.TimeOfDay.Ticks),
                         fileBegin.Offset);
 
-                    isSuccess = folderBegin != default;
+                    success = folderBegin != default;
                 }
             }
 
@@ -1027,7 +1032,7 @@ public abstract class StructuredFileDataSource : IDataSource
                 if (folderBegin != default)
                 {
                     fileBegin = folderBegin;
-                    isSuccess = true;
+                    success = true;
                 }
 
                 // long way
@@ -1036,18 +1041,21 @@ public abstract class StructuredFileDataSource : IDataSource
                     folderBegin = GetFolderBegin_AnyKind(filePath, fileSource);
 
                     fileBegin = folderBegin;
-                    isSuccess = folderBegin != default;
+                    success = folderBegin != default;
                 }
             }
+
+            if (success && fileSource.FileNameOffset != TimeSpan.Zero)
+                fileBegin = new CustomDateTimeOffset(fileBegin.DateTime - fileSource.FileNameOffset, fileBegin.Offset);
         }
 
         // no date + no time: failed
         else
         {
-            isSuccess = false;
+            success = false;
         }
 
-        return isSuccess;
+        return success;
     }
 
     private static CustomDateTimeOffset GetFolderBegin_AnyKind(string filePath, FileSource fileSource)
