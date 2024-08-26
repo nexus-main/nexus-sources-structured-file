@@ -1,7 +1,7 @@
 [
   {
     "BufferOffset": 0,
-    "FilePath": "/debug/DATABASES/J/DATA1/2020_01_01.dat",
+    "FilePath": "J/DATA1/2020_01_01.dat",
     "FileSource": null,
     "RegularFileBegin": "2020-01-01T00:00:00Z",
     "FileOffset": 0,
@@ -10,7 +10,7 @@
   },
   {
     "BufferOffset": 86400,
-    "FilePath": "/debug/DATABASES/J/DATA1/2020-01-02.dat",
+    "FilePath": "J/DATA1/2020-01-02.dat",
     "FileSource": null,
     "RegularFileBegin": "2020-01-02T00:00:00Z",
     "FileOffset": 0,
@@ -19,7 +19,7 @@
   },
   {
     "BufferOffset": 259200,
-    "FilePath": "/debug/DATABASES/J/DATA2/2020-01-04.dat",
+    "FilePath": "J/DATA2/2020-01-04.dat",
     "FileSource": null,
     "RegularFileBegin": "2020-01-04T00:00:00Z",
     "FileOffset": 0,

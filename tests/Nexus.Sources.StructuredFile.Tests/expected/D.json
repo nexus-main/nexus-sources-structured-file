@@ -1,7 +1,7 @@
 [
   {
     "BufferOffset": 36000,
-    "FilePath": "/debug/DATABASES/D/DATA/position_A/__0_2019-12-31_12-00-00_000000.dat",
+    "FilePath": "D/DATA/position_A/__0_2019-12-31_12-00-00_000000.dat",
     "FileSource": null,
     "RegularFileBegin": "2019-12-31T10:00:00Z",
     "FileOffset": 0,
@@ -10,7 +10,7 @@
   },
   {
     "BufferOffset": 165600,
-    "FilePath": "/debug/DATABASES/D/DATA/position_A/__0_2020-01-02_00-00-00_000000.dat",
+    "FilePath": "D/DATA/position_A/__0_2020-01-02_00-00-00_000000.dat",
     "FileSource": null,
     "RegularFileBegin": "2020-01-01T22:00:00Z",
     "FileOffset": 0,
@@ -19,7 +19,7 @@
   },
   {
     "BufferOffset": 166200,
-    "FilePath": "/debug/DATABASES/D/DATA/position_A/__0_2020-01-02_00-10-00_000000.dat",
+    "FilePath": "D/DATA/position_A/__0_2020-01-02_00-10-00_000000.dat",
     "FileSource": null,
     "RegularFileBegin": "2020-01-01T22:10:00Z",
     "FileOffset": 0,

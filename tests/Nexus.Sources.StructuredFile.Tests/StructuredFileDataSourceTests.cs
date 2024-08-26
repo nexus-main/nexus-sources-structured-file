@@ -339,7 +339,7 @@ public class StructuredFileDataSourceTests
             .Select(x => x with 
                 { 
                     FileSource = default!,
-                    FilePath = x.FilePath.Split("Nexus.Sources.StructuredFile.Tests")[1]
+                    FilePath = x.FilePath.Split("/DATABASES/")[1]
                 }
             )
             .OrderBy(x => x.FilePath);

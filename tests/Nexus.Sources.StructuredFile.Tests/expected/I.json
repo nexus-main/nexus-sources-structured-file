@@ -1,7 +1,7 @@
 [
   {
     "BufferOffset": 86100,
-    "FilePath": "/debug/DATABASES/I/DATA/2019-12-31_23-55-00/data.dat",
+    "FilePath": "I/DATA/2019-12-31_23-55-00/data.dat",
     "FileSource": null,
     "RegularFileBegin": "2019-12-31T23:55:00Z",
     "FileOffset": 0,
@@ -10,7 +10,7 @@
   },
   {
     "BufferOffset": 87000,
-    "FilePath": "/debug/DATABASES/I/DATA/2020-01-01_00-10-00/data.dat",
+    "FilePath": "I/DATA/2020-01-01_00-10-00/data.dat",
     "FileSource": null,
     "RegularFileBegin": "2020-01-01T00:10:00Z",
     "FileOffset": 0,

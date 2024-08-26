@@ -1,7 +1,7 @@
 [
   {
     "BufferOffset": 88822,
-    "FilePath": "/debug/DATABASES/G/DATA/prefix_01-01-2020/00-40-22.dat",
+    "FilePath": "G/DATA/prefix_01-01-2020/00-40-22.dat",
     "FileSource": null,
     "RegularFileBegin": "2020-01-01T00:40:22Z",
     "FileOffset": 0,
@@ -10,7 +10,7 @@
   },
   {
     "BufferOffset": 92362,
-    "FilePath": "/debug/DATABASES/G/DATA/prefix_01-01-2020/01-39-22.dat",
+    "FilePath": "G/DATA/prefix_01-01-2020/01-39-22.dat",
     "FileSource": null,
     "RegularFileBegin": "2020-01-01T01:39:22Z",
     "FileOffset": 0,
@@ -19,7 +19,7 @@
   },
   {
     "BufferOffset": 2422,
-    "FilePath": "/debug/DATABASES/G/DATA/prefix_31-12-2019/00-40-22.dat",
+    "FilePath": "G/DATA/prefix_31-12-2019/00-40-22.dat",
     "FileSource": null,
     "RegularFileBegin": "2019-12-31T00:40:22Z",
     "FileOffset": 0,
@@ -28,7 +28,7 @@
   },
   {
     "BufferOffset": 5962,
-    "FilePath": "/debug/DATABASES/G/DATA/prefix_31-12-2019/01-39-22.dat",
+    "FilePath": "G/DATA/prefix_31-12-2019/01-39-22.dat",
     "FileSource": null,
     "RegularFileBegin": "2019-12-31T01:39:22Z",
     "FileOffset": 0,
