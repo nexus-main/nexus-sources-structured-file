@@ -1,3 +1,7 @@
+## v2.0.0-beta.28 - 2024-08-26
+
+- Improved test coverage and fixed the core file resolution algorithm
+
 ## v2.0.0-beta.27 - 2024-08-26
 
 - Added support for file named after the end of the period of the data they contain

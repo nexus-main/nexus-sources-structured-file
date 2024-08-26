@@ -116,6 +116,7 @@ public class StructuredFileDataSourceTests
     [InlineData("DATABASES/N", "2019-12-31T12-00-00Z", "2020-01-03T12-00-00Z")]
     [InlineData("DATABASES/O", "2020-01-01T00-35-23Z", "2020-01-01T01-00-10Z")]
     [InlineData("DATABASES/P", "2020-01-01T00-00-00Z", "2020-01-01T00-20-00Z")]
+    [InlineData("DATABASES/Q", "2019-12-31T23-00-00Z", "2020-01-02T23-00-00Z")]
     public async Task CanProvideTimeRange(string root, string expectedBeginString, string expectedEndString)
     {
         var expectedBegin = DateTime.ParseExact(expectedBeginString, "yyyy-MM-ddTHH-mm-ssZ", null, DateTimeStyles.AdjustToUniversal);
@@ -154,6 +155,7 @@ public class StructuredFileDataSourceTests
     [InlineData("DATABASES/N", "2020-01-01T00-00-00Z", "2020-01-03T00-00-00Z", 7 / 8.0, 2)]
     [InlineData("DATABASES/O", "2020-01-01T00-00-00Z", "2020-01-02T00-00-00Z", 3 / 288.0, 4)]
     [InlineData("DATABASES/P", "2020-01-01T00-00-00Z", "2020-01-02T00-00-00Z", 2 / 144.0, 4)]
+    [InlineData("DATABASES/Q", "2020-01-01T00-00-00Z", "2020-01-03T00-00-00Z", 0.5, 1)]
     public async Task CanProvideAvailability(string root, string beginString, string endString, double expected, int precision)
     {
         // Arrange
@@ -299,7 +301,9 @@ public class StructuredFileDataSourceTests
     [InlineData("M", "2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z")]
     [InlineData("N", "2020-01-01T00:00:00Z", "2020-01-04T00:00:00Z")]
     [InlineData("O", "2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z")]
+    [InlineData("O2", "2020-01-01T00:35:23Z", "2020-01-01T00:35:24Z")]
     [InlineData("P", "2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z")]
+    [InlineData("Q", "2020-01-01T00:00:00Z", "2020-01-03T00:00:00Z")]
     public async Task CanRead_ReadInfos(string database, string beginString, string endString)
     {
         // Arrange
@@ -307,7 +311,7 @@ public class StructuredFileDataSourceTests
         var dataSource = new StructuredFileDataSourceTester(readInfos.Add) as IDataSource;
 
         var context = new DataSourceContext(
-            ResourceLocator: new Uri(Path.Combine(Directory.GetCurrentDirectory(), $"DATABASES/{database}")),
+            ResourceLocator: new Uri(Path.Combine(Directory.GetCurrentDirectory(), $"DATABASES/{database[0]}")),
             SystemConfiguration: default!,
             SourceConfiguration: default!,
             RequestConfiguration: default!);
@@ -345,7 +349,7 @@ public class StructuredFileDataSourceTests
             .OrderBy(x => x.FilePath);
 
         var actualJsonString = JsonSerializer.Serialize(preparedReadInfos, new JsonSerializerOptions { WriteIndented = true });
-        // File.WriteAllText($"{database}.json", actualJsonString);
+        File.WriteAllText($"{database}.json", actualJsonString);
 
         var expectedJsonString = File.ReadAllText($"expected/{database}.json");
 

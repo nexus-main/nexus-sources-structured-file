@@ -1,0 +1,20 @@
+[
+  {
+    "BufferOffset": 0,
+    "FilePath": "Q/DATA/2020-01-01T00-00-00.dat",
+    "FileSource": null,
+    "RegularFileBegin": "2019-12-31T23:00:00Z",
+    "FileOffset": 3600,
+    "FileBlock": 82800,
+    "FileLength": 86400
+  },
+  {
+    "BufferOffset": 82800,
+    "FilePath": "Q/DATA/2020-01-02T00-00-00.dat",
+    "FileSource": null,
+    "RegularFileBegin": "2020-01-01T23:00:00Z",
+    "FileOffset": 0,
+    "FileBlock": 86400,
+    "FileLength": 86400
+  }
+]

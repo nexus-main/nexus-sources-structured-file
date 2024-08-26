@@ -23,4 +23,6 @@ These tests cover all cases for file/folder structures which contain files with 
 | M    | datetime file with random start time                                                                      | 00:00:00           | 01:00:00             | x     |
 | N    | date folder, time file                                                                                    | 12:00:00           | 06:00:00             |       |
 | O    | datetime file with random start time and interval exceeding end                                           | 00:00:00           | 01:00:00             | x     |
+| O2   | datetime file with random start time and interval exceeding end, different time period for test           | 00:00:00           | 01:00:00             | x     |
 | P    | datetime file with file name offset                                                                       | 00:00:00           | 00:10:00             |       |
+| Q    | datetime file with file period larger than UTC offset                                                     | 01:00:00           | 1.00:00:00           |       |
