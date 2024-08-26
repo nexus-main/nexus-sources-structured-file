@@ -1,3 +1,9 @@
+## v2.0.0-beta.27 - 2024-08-26
+
+- Added support for file named after the end of the period of the data they contain
+- Added support for files not starting at the multiple of their time period (but still have a certain well-known length)
+- Improved test coverage
+
 ## v2.0.0-beta.26 - 2024-07-11
 
 - Fix handling of partially written files.
