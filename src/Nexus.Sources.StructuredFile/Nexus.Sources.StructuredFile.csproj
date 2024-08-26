@@ -11,7 +11,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
-  <PropertyGroup "'$(GeneratePackage)'=='true'">
+  <PropertyGroup Condition="'$(GeneratePackage)'=='true'">
     <DefineConstants>$(DefineConstants);IS_PUBLISH_BUILD</DefineConstants>
   </PropertyGroup>
 
