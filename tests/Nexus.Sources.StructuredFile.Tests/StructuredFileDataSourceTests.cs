@@ -349,7 +349,7 @@ public class StructuredFileDataSourceTests
             .OrderBy(x => x.FilePath);
 
         var actualJsonString = JsonSerializer.Serialize(preparedReadInfos, new JsonSerializerOptions { WriteIndented = true });
-        File.WriteAllText($"{database}.json", actualJsonString);
+        // File.WriteAllText($"{database}.json", actualJsonString);
 
         var expectedJsonString = File.ReadAllText($"expected/{database}.json");
 
