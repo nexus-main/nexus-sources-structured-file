@@ -101,13 +101,13 @@ public abstract class StructuredFileDataSource : IDataSource
     // [".../2020-01-01.dat", ".../2020-06-01.dat" ].
 
     /// <summary>
-    /// Gets the requested <see cref="ResourceCatalog"/>.
+    /// Enriches the provided <see cref="ResourceCatalog"/>.
     /// </summary>
-    /// <param name="catalogId">The catalog identifier.</param>
+    /// <param name="catalog">The catalog.</param>
     /// <param name="cancellationToken">A token to cancel the current operation.</param>
     /// <returns>The catalog request task.</returns>
-    protected abstract Task<ResourceCatalog> GetCatalogAsync(
-        string catalogId,
+    protected abstract Task<ResourceCatalog> EnrichCatalogAsync(
+        ResourceCatalog catalog,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -503,11 +503,11 @@ public abstract class StructuredFileDataSource : IDataSource
                                         var originalName = catalogItem.Resource.Properties?
                                             .GetStringValue(StructuredFileDataModelExtensions.OriginalNameKey)!;
 
-                                        return new StructuredFileReadRequest(
+                                        return new ReadRequest(
+                                            OriginalResourceName: originalName,
                                             CatalogItem: request.CatalogItem,
                                             Data: slicedData,
-                                            Status: slicedStatus,
-                                            OriginalName: originalName
+                                            Status: slicedStatus
                                         );
                                     }).ToArray();
 
@@ -579,7 +579,7 @@ public abstract class StructuredFileDataSource : IDataSource
     /// <returns>The task.</returns>
     protected abstract Task ReadAsync(
         ReadInfo info,
-        StructuredFileReadRequest[] readRequests,
+        ReadRequest[] readRequests,
         CancellationToken cancellationToken);
 
     private protected Task<(DateTime RegularUtcFileBegin, (string FilePath, TimeSpan FileBeginOffset)[])> 
@@ -736,11 +736,11 @@ public abstract class StructuredFileDataSource : IDataSource
         return GetCatalogRegistrationsAsync(path, cancellationToken);
     }
 
-    async Task<ResourceCatalog> IDataSource.GetCatalogAsync(
-        string catalogId,
+    async Task<ResourceCatalog> IDataSource.EnrichCatalogAsync(
+        ResourceCatalog catalog,
         CancellationToken cancellationToken)
     {
-        var catalog = await GetCatalogAsync(catalogId, cancellationToken);
+        catalog = await EnrichCatalogAsync(catalog, cancellationToken);
 
         if (catalog.Resources is not null)
         {
@@ -751,12 +751,6 @@ public abstract class StructuredFileDataSource : IDataSource
 
                 if (string.IsNullOrWhiteSpace(fileSourceId))
                     throw new Exception($"The resource {resource.Id} is missing the file source property.");
-
-                // ensure original name
-                var originalName = resource.Properties?.GetStringValue(StructuredFileDataModelExtensions.OriginalNameKey);
-
-                if (string.IsNullOrWhiteSpace(originalName))
-                    throw new Exception($"The resource {resource.Id} is missing the original name property.");
             }
         }
 

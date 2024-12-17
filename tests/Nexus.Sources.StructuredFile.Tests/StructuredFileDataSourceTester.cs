@@ -1,4 +1,5 @@
 ﻿using Nexus.DataModel;
+using Nexus.Extensibility;
 using System.Text.Json;
 
 namespace Nexus.Sources.Tests;
@@ -43,7 +44,7 @@ public class StructuredFileDataSourceTester : StructuredFileDataSource
         return Task.FromResult(new CatalogRegistration[] { new("/A/B/C", string.Empty) });
     }
 
-    protected override Task<ResourceCatalog> GetCatalogAsync(string catalogId, CancellationToken cancellationToken)
+    protected override Task<ResourceCatalog> EnrichCatalogAsync(ResourceCatalog catalog, CancellationToken cancellationToken)
     {
         var representation = new Representation(
             dataType: NexusDataType.INT64,
@@ -54,16 +55,15 @@ public class StructuredFileDataSourceTester : StructuredFileDataSource
 
         var resource = new ResourceBuilder(id: "Resource1")
             .WithFileSourceId(fileSourceId)
-            .WithOriginalName("Resource1")
             .AddRepresentation(representation)
             .Build();
 
-        var catalog = new ResourceCatalog(id: "/A/B/C", resources: new List<Resource>() { resource });
+        catalog = catalog.Merge(new ResourceCatalog(id: "/A/B/C", resources: new List<Resource>() { resource }));
 
         return Task.FromResult(catalog);
     }
 
-    protected override async Task ReadAsync(ReadInfo readInfo, StructuredFileReadRequest[] readRequests, CancellationToken cancellationToken)
+    protected override async Task ReadAsync(ReadInfo readInfo, ReadRequest[] readRequests, CancellationToken cancellationToken)
     {
         _onNewReadInfo?.Invoke(readInfo);
 

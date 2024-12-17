@@ -318,7 +318,7 @@ public class StructuredFileDataSourceTests
 
         await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
-        var catalog = await dataSource.GetCatalogAsync("/A/B/C", CancellationToken.None);
+        var catalog = await dataSource.EnrichCatalogAsync(new("/A/B/C"), CancellationToken.None);
         var resource = catalog.Resources![0];
         var representation = resource.Representations![0];
         var catalogItem = new CatalogItem(catalog, resource, representation, default);
@@ -327,7 +327,7 @@ public class StructuredFileDataSourceTests
         var end = DateTime.ParseExact(endString, "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
         var (data, status) = ExtensibilityUtilities.CreateBuffers(representation, begin, end);
 
-        var request = new ReadRequest(catalogItem, data, status);
+        var request = new ReadRequest(resource.Id, catalogItem, data, status);
 
         // Act
         await dataSource.ReadAsync(
@@ -369,7 +369,7 @@ public class StructuredFileDataSourceTests
 
         await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
-        var catalog = await dataSource.GetCatalogAsync("/A/B/C", CancellationToken.None);
+        var catalog = await dataSource.EnrichCatalogAsync(new("/A/B/C"), CancellationToken.None);
         var resource = catalog.Resources![0];
         var representation = resource.Representations![0];
         var catalogItem = new CatalogItem(catalog, resource, representation, default);
@@ -399,7 +399,7 @@ public class StructuredFileDataSourceTests
         GenerateData(new DateTimeOffset(2020, 01, 02, 09, 40, 00, TimeSpan.Zero), length: 600);
         GenerateData(new DateTimeOffset(2020, 01, 02, 09, 50, 00, TimeSpan.Zero), length: 600);
 
-        var request = new ReadRequest(catalogItem, data, status);
+        var request = new ReadRequest(resource.Id, catalogItem, data, status);
 
         await dataSource.ReadAsync(
             begin,
@@ -431,11 +431,11 @@ public class StructuredFileDataSourceTests
 
         await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
-        var catalog = await dataSource.GetCatalogAsync("/A/B/C", CancellationToken.None);
+        var catalog = await dataSource.EnrichCatalogAsync(new("/A/B/C"), CancellationToken.None);
         var resource = catalog.Resources![0];
         var representation = resource.Representations![0];
         var catalogItem = new CatalogItem(catalog, resource, representation, default);
-        var request = new ReadRequest(catalogItem, default, default);
+        var request = new ReadRequest(resource.Id, catalogItem, default, default);
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
             dataSource.ReadAsync(
@@ -444,6 +444,8 @@ public class StructuredFileDataSourceTests
                 [request],
                 default!,
                 default!,
-                CancellationToken.None));
+                CancellationToken.None
+            )
+        );
     }
 }

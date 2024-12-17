@@ -54,17 +54,3 @@ public record ReadInfo(
     long FileBlock,
     long FileLength
 );
-
-/// <summary>
-/// An read request with additional data.
-/// </summary>
-/// <param name="CatalogItem">The CatalogItem to be read.</param>
-/// <param name="Data">The data buffer.</param>
-/// <param name="Status">The status buffer. A value of 0x01 ('1') indicates that the corresponding value in the data buffer is valid, otherwise it is treated as System.Double.NaN.</param>
-/// <param name="OriginalName">The original name of the resource to read.</param>
-public record StructuredFileReadRequest(
-    CatalogItem CatalogItem,
-    Memory<byte> Data,
-    Memory<byte> Status,
-    string OriginalName
-) : ReadRequest(CatalogItem, Data, Status);

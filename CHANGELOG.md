@@ -1,3 +1,7 @@
+## v2.0.0-beta.33 - 2024-12-17
+
+- Follow Nexus changes
+
 ## v2.0.0-beta.28 - 2024-08-26
 
 - Improved test coverage and fixed the core file resolution algorithm
