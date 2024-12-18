@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Nexus.DataModel;
@@ -501,7 +502,7 @@ public abstract class StructuredFileDataSource : IDataSource
                                             );
 
                                         var originalName = catalogItem.Resource.Properties?
-                                            .GetStringValue(StructuredFileDataModelExtensions.OriginalNameKey)!;
+                                            .GetStringValue(DataModelExtensions.OriginalNameKey) ?? throw new Exception("The OriginalName property is not set.");
 
                                         return new ReadRequest(
                                             OriginalResourceName: originalName,
@@ -744,13 +745,45 @@ public abstract class StructuredFileDataSource : IDataSource
 
         if (catalog.Resources is not null)
         {
+            // TODO: code duplication (DataModelExtensions.cs)
+            var isModified = false;
+            var newResources = new List<Resource>();
+
             foreach (var resource in catalog.Resources)
             {
-                // ensure file source id
-                var fileSourceId = resource.Properties?.GetStringValue(StructuredFileDataModelExtensions.FileSourceIdKey);
+                var resourceProperties = resource.Properties;
+                var newResource = resource;
 
-                if (string.IsNullOrWhiteSpace(fileSourceId))
-                    throw new Exception($"The resource {resource.Id} is missing the file source property.");
+                var originalName = resourceProperties?
+                    .GetStringValue(DataModelExtensions.OriginalNameKey);
+
+                if (originalName is null)
+                {
+                    var newResourceProperties = resourceProperties is null
+                        ? []
+                        : resourceProperties!.ToDictionary(entry => entry.Key, entry => entry.Value);
+
+                    // Original name
+                    if (originalName is null)
+                        newResourceProperties[DataModelExtensions.OriginalNameKey] = JsonSerializer.SerializeToElement(resource.Id);
+
+                    newResource = resource with
+                    {
+                        Properties = newResourceProperties
+                    };
+
+                    isModified = true;
+                }
+
+                newResources.Add(newResource);
+            }
+
+            if (isModified)
+            {
+                catalog = catalog with
+                {
+                    Resources = newResources
+                };
             }
         }
 
