@@ -1,3 +1,7 @@
+## v2.0.0-beta.35 - 2024-12-30
+
+- Add workaround for extensions that deal with files containing aggregated data which are named after the end time of the aggregation period
+
 ## v2.0.0-beta.34 - 2024-12-18
 
 - The OriginalName property was not set properly

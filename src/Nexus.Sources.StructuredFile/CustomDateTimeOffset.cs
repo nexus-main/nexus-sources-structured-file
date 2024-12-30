@@ -2,12 +2,40 @@ using System.Globalization;
 
 internal record struct CustomDateTimeOffset
 {
+    private static TimeSpan ONE_DAY = TimeSpan.FromDays(1);
+
     private DateTime? _utcDateTime;
 
     public CustomDateTimeOffset(DateTime dateTime, TimeSpan offset)
     {
         if (dateTime.Kind != DateTimeKind.Unspecified)
             throw new Exception("Only Kind = DateTimeKind.Unspecified is allowed.");
+
+        /* Only accept offsets < 1d (actually it should be < 14 hours
+         * but I don't know how to cleanly implement this special case).
+         * 
+         * This is a workaround for 
+         * https://github.com/nexus-contrib/nexus-sources-leospherewindiris/blob/df5bbd6febeda6131034324d88d31e931ad95feb/tests/Nexus.Sources.LeosphereWindIris.Tests/Database/config.json#L23
+         * and other extensions that deal with files containing aggregated data
+         * which are named after the end time of the aggregation period.
+         *
+         * I hope it does not break anything else because the DateTime
+         * property is being modified in an unexpected way.
+         */
+        while (offset >= ONE_DAY)
+        {
+            if ((dateTime - DateTime.MinValue) > ONE_DAY)
+                dateTime -= ONE_DAY;
+
+            offset -= ONE_DAY;
+        }
+
+        /* This should never be required. */
+        // while (offset <= -ONE_DAY)
+        // {
+        //     dateTime += ONE_DAY;
+        //     offset += ONE_DAY;
+        // }
 
         DateTime = dateTime;
         Offset = offset;
