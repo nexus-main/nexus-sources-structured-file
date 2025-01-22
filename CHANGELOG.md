@@ -1,3 +1,7 @@
+## v2.0.0-beta.36 - 2025-01-22
+
+- Follow Nexus changes
+
 ## v2.0.0-beta.35 - 2024-12-30
 
 - Add workaround for extensions that deal with files containing aggregated data which are named after the end time of the aggregation period
