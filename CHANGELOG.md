@@ -1,3 +1,7 @@
+## v2.0.0-beta.37 - 2025-02-03
+
+- Add support for strongly-typed settings
+
 ## v2.0.0-beta.36 - 2025-01-22
 
 - Follow Nexus changes
