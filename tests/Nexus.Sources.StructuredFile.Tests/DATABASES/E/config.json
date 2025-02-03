@@ -1,26 +1,31 @@
 {
-  "/A/B/C": {
-    "average": [{
-      "PathSegments": [
-        "'DATA'",
-        "yyyy-MM"
-      ],
-      "FileTemplate": "'prefix_average_data_'yyyy-MM-dd_HH-mm-ss'.dat'",
-      "FileDateTimePreselector": "prefix_average_data_(.{19})",
-      "FileDateTimeSelector": "yyyy-MM-dd_HH-mm-ss",
-      "FilePeriod": "1.00:00:00",
-      "UtcOffset": "00:00:00"
-    }],
-    "real_time": [{
-      "PathSegments": [
-        "'DATA'",
-        "yyyy-MM"
-      ],
-      "FileTemplate": "'prefix_real_time_data_'yyyy-MM-dd_HH-mm-ss'.dat'",
-      "FileDateTimePreselector": "prefix_real_time_data_(.{19})",
-      "FileDateTimeSelector": "yyyy-MM-dd_HH-mm-ss",
-      "FilePeriod": "00:30:00",
-      "UtcOffset": "00:00:00"
-    }]
+  "fileSourceGroupsMap": {
+    "/A/B/C": {
+      "average": [{
+        "pathSegments": [
+          "'DATA'",
+          "yyyy-MM"
+        ],
+        "fileTemplate": "'prefix_average_data_'yyyy-MM-dd_HH-mm-ss'.dat'",
+        "fileDateTimePreselector": "prefix_average_data_(.{19})",
+        "fileDateTimeSelector": "yyyy-MM-dd_HH-mm-ss",
+        "filePeriod": "1.00:00:00",
+        "utcOffset": "00:00:00"
+      }],
+      "real_time": [{
+        "pathSegments": [
+          "'DATA'",
+          "yyyy-MM"
+        ],
+        "fileTemplate": "'prefix_real_time_data_'yyyy-MM-dd_HH-mm-ss'.dat'",
+        "fileDateTimePreselector": "prefix_real_time_data_(.{19})",
+        "fileDateTimeSelector": "yyyy-MM-dd_HH-mm-ss",
+        "filePeriod": "00:30:00",
+        "utcOffset": "00:00:00"
+      }]
+    }
+  },
+  "additionalSettings": {
+    "titleMap": {}
   }
 }

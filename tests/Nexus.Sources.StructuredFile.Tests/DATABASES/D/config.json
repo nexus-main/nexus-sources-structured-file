@@ -1,22 +1,27 @@
 {
-  "/A/B/C": {
-    "position_A": [{
-      "PathSegments": [
-        "'DATA'",
-        "'position_A'"
-      ],
-      "FileTemplate": "'__0_'yyyy-MM-dd_HH-mm-ss'_000000.dat'",
-      "FilePeriod": "00:10:00",
-      "UtcOffset": "02:00:00"
-    }],
-    "position_B": [{
-      "PathSegments": [
-        "'DATA'",
-        "'position_B'"
-      ],
-      "FileTemplate": "'__1_'yyyy-MM-dd_HH-mm-ss'_000000.dat'",
-      "FilePeriod": "01:00:00",
-      "UtcOffset": "01:00:00"
-    }]
+  "fileSourceGroupsMap": {
+    "/A/B/C": {
+      "position_A": [{
+        "pathSegments": [
+          "'DATA'",
+          "'position_A'"
+        ],
+        "fileTemplate": "'__0_'yyyy-MM-dd_HH-mm-ss'_000000.dat'",
+        "filePeriod": "00:10:00",
+        "utcOffset": "02:00:00"
+      }],
+      "position_B": [{
+        "pathSegments": [
+          "'DATA'",
+          "'position_B'"
+        ],
+        "fileTemplate": "'__1_'yyyy-MM-dd_HH-mm-ss'_000000.dat'",
+        "filePeriod": "01:00:00",
+        "utcOffset": "01:00:00"
+      }]
+    }
+  },
+  "additionalSettings": {
+    "titleMap": {}
   }
 }

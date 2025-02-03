@@ -1,16 +1,21 @@
 {
-  "/A/B/C": {
-    "default": [
-      {
-        "PathSegments": [
-          "'DATA'"
-        ],
-        "FileTemplate": "yyyy-MM-ddTHH-mm-ssZ'_V*.dat'",
-        "FileDateTimePreselector": "(.{20})_V.+\\.dat",
-        "FileDateTimeSelector": "yyyy-MM-ddTHH-mm-ssZ",
-        "FilePeriod": "1.00:00:00",
-        "UtcOffset": "00:00:00"
-      }
-    ]
+  "fileSourceGroupsMap": {
+    "/A/B/C": {
+      "default": [
+        {
+          "pathSegments": [
+            "'DATA'"
+          ],
+          "fileTemplate": "yyyy-MM-ddTHH-mm-ssZ'_V*.dat'",
+          "fileDateTimePreselector": "(.{20})_V.+\\.dat",
+          "fileDateTimeSelector": "yyyy-MM-ddTHH-mm-ssZ",
+          "filePeriod": "1.00:00:00",
+          "utcOffset": "00:00:00"
+        }
+      ]
+    }
+  },
+  "additionalSettings": {
+    "titleMap": {}
   }
 }

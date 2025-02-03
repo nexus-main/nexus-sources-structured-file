@@ -11,7 +11,8 @@ namespace Nexus.Sources;
 /// <summary>
 /// A base class to simplify reading data from structured, file-based data sources.
 /// </summary>
-public abstract class StructuredFileDataSource : IDataSource
+public abstract class StructuredFileDataSource<TAdditionalSettings, TAdditionalFileSourceSettings> 
+    : IDataSource<StructuredFileDataSourceSettings<TAdditionalSettings, TAdditionalFileSourceSettings>>
 {
     // This implementation assumes the following:
     //
@@ -54,14 +55,13 @@ public abstract class StructuredFileDataSource : IDataSource
     /// <summary>
     /// Gets the data source context. This property is not accessible from within class constructors as it will bet set later.
     /// </summary>
-    protected DataSourceContext Context { get; private set; } = default!;
+    protected DataSourceContext<StructuredFileDataSourceSettings<TAdditionalSettings, TAdditionalFileSourceSettings>>
+        Context { get; private set; } = default!;
 
     /// <summary>
     /// Gets the data logger. This property is not accessible from within class constructors as it will bet set later.
     /// </summary>
     protected ILogger Logger { get; private set; } = default!;
-
-    private Func<string, Dictionary<string, IReadOnlyList<FileSource>>> FileSourceProvider { get; set; } = default!;
 
     #region Protected API as seen by subclass
 
@@ -76,14 +76,6 @@ public abstract class StructuredFileDataSource : IDataSource
     }
 
     /// <summary>
-    /// Gets the file source provider that provides information about the file structure within the database.
-    /// </summary>
-    /// <param name="cancellationToken">A token to cancel the current operation.</param>
-    /// <returns>The task.</returns>
-    protected abstract Task<Func<string, Dictionary<string, IReadOnlyList<FileSource>>>> GetFileSourceProviderAsync(
-        CancellationToken cancellationToken);
-
-    /// <summary>
     /// Gets the catalog registrations that are located under <paramref name="path"/>.
     /// </summary>
     /// <param name="path">The parent path for which to return catalog registrations.</param>
@@ -91,7 +83,8 @@ public abstract class StructuredFileDataSource : IDataSource
     /// <returns>The catalog identifiers task.</returns>
     protected abstract Task<CatalogRegistration[]> GetCatalogRegistrationsAsync(
         string path,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 
     // GetCatalogAsync:
     // It is not uncommon to have measurement data files with varying channel list over
@@ -109,7 +102,8 @@ public abstract class StructuredFileDataSource : IDataSource
     /// <returns>The catalog request task.</returns>
     protected abstract Task<ResourceCatalog> EnrichCatalogAsync(
         ResourceCatalog catalog,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Gets the time range of the <see cref="ResourceCatalog"/>.
@@ -117,9 +111,10 @@ public abstract class StructuredFileDataSource : IDataSource
     /// <param name="catalogId">The catalog identifier.</param>
     /// <param name="cancellationToken">A token to cancel the current operation.</param>
     /// <returns>The time range task.</returns>
-    protected virtual Task<(DateTime Begin, DateTime End)> GetTimeRangeAsync(
+    protected virtual Task<CatalogTimeRange> GetTimeRangeAsync(
         string catalogId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         return Task.Run(() =>
         {
@@ -128,7 +123,7 @@ public abstract class StructuredFileDataSource : IDataSource
 
             if (Directory.Exists(Root))
             {
-                foreach (var (key, fileSourceGroup) in FileSourceProvider(catalogId))
+                foreach (var (key, fileSourceGroup) in Context.SourceConfiguration.FileSourceGroupsMap[catalogId])
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
@@ -185,7 +180,7 @@ public abstract class StructuredFileDataSource : IDataSource
                 Logger.LogDebug("Folder {Root} does not exist, return default time range", Root);
             }
 
-            return (minDateTime, maxDateTime);
+            return new CatalogTimeRange(minDateTime, maxDateTime);
         });
     }
 
@@ -201,7 +196,8 @@ public abstract class StructuredFileDataSource : IDataSource
         string catalogId,
         DateTime begin,
         DateTime end,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         if (begin >= end)
             throw new ArgumentException("The start time must be before the end time.");
@@ -219,7 +215,7 @@ public abstract class StructuredFileDataSource : IDataSource
             if (Directory.Exists(Root))
             {
                 var summedAvailability = 0.0;
-                var fileSourceGroups = FileSourceProvider(catalogId);
+                var fileSourceGroups = Context.SourceConfiguration.FileSourceGroupsMap[catalogId];
 
                 foreach (var (key, fileSourceGroup) in fileSourceGroups)
                 {
@@ -324,7 +320,8 @@ public abstract class StructuredFileDataSource : IDataSource
         DateTime end,
         ReadRequest[] requests,
         IProgress<double> progress,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var fileSourceGroupIndex = 0.0;
 
@@ -349,7 +346,7 @@ public abstract class StructuredFileDataSource : IDataSource
                 var firstCatalogItem = group.First().CatalogItem;
                 var catalogId = firstCatalogItem.Catalog.Id;
                 var samplePeriod = firstCatalogItem.Representation.SamplePeriod;
-                var fileSourceGroup = FileSourceProvider(catalogId)[fileSourceId];
+                var fileSourceGroup = Context.SourceConfiguration.FileSourceGroupsMap[catalogId][fileSourceId];
                 var fileSourceCompensatedBegin = begin;
 
                 ValidateFileSourceGroup(fileSourceGroup, samplePeriod);
@@ -512,7 +509,7 @@ public abstract class StructuredFileDataSource : IDataSource
                                         );
                                     }).ToArray();
 
-                                    var readInfo = new ReadInfo(
+                                    var readInfo = new ReadInfo<TAdditionalFileSourceSettings>(
 #if !IS_PUBLISH_BUILD
                                         actualBufferOffset,
 #endif
@@ -579,12 +576,13 @@ public abstract class StructuredFileDataSource : IDataSource
     /// <param name="cancellationToken">A token to cancel the current operation.</param>
     /// <returns>The task.</returns>
     protected abstract Task ReadAsync(
-        ReadInfo info,
+        ReadInfo<TAdditionalFileSourceSettings> info,
         ReadRequest[] readRequests,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 
     private protected Task<(DateTime RegularUtcFileBegin, (string FilePath, TimeSpan FileBeginOffset)[])> 
-        FindFileBeginAndPathsAsync(DateTime begin, FileSource fileSource)
+        FindFileBeginAndPathsAsync(DateTime begin, FileSource<TAdditionalFileSourceSettings> fileSource)
     {
         /* This implementation assumes that files are stored in regular time intervals.
          * The files can start late, but MUST end no later than the regular time interval.
@@ -690,19 +688,23 @@ public abstract class StructuredFileDataSource : IDataSource
     }
 
     /// <summary>
-    /// Tries to find the first file for a given <see cref="FileSource"/>. 
+    /// Tries to find the first file for a given <see cref="FileSource{TAdditionalSettings}"/>. 
     /// </summary>
     /// <param name="fileSource">The file source for which to find the first file.</param>
     /// <param name="filePath">The found file path.</param>
     /// <returns>True when a file was found, false otherwise.</returns>
-    protected bool TryGetFirstFile(FileSource fileSource, [NotNullWhen(true)] out string? filePath)
+    protected bool TryGetFirstFile(
+        FileSource<TAdditionalFileSourceSettings> fileSource, 
+        [NotNullWhen(true)] out string? filePath
+    )
     {
         filePath = GetCandidateFiles(
-                    Root,
-                    DateTime.MinValue,
-                    DateTime.MinValue,
-                    fileSource,
-                    CancellationToken.None)
+            Root,
+            DateTime.MinValue,
+            DateTime.MinValue,
+            fileSource,
+            CancellationToken.None
+        )
             .OrderBy(file => file.DateTimeOffset.UtcDateTime)
             .Select(file => file.FilePath)
             .FirstOrDefault();
@@ -714,10 +716,11 @@ public abstract class StructuredFileDataSource : IDataSource
 
     #region Public API as seen by Nexus and unit tests
 
-    async Task IDataSource.SetContextAsync(
-        DataSourceContext context,
+    async Task IDataSource<StructuredFileDataSourceSettings<TAdditionalSettings, TAdditionalFileSourceSettings>>.SetContextAsync(
+        DataSourceContext<StructuredFileDataSourceSettings<TAdditionalSettings, TAdditionalFileSourceSettings>> context,
         ILogger logger,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         if (context.ResourceLocator is null)
             throw new Exception("The resource locator parameter is required.");
@@ -727,19 +730,20 @@ public abstract class StructuredFileDataSource : IDataSource
         Logger = logger;
 
         await InitializeAsync(cancellationToken);
-        FileSourceProvider = await GetFileSourceProviderAsync(cancellationToken);
     }
 
     Task<CatalogRegistration[]> IDataSource.GetCatalogRegistrationsAsync(
         string path,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         return GetCatalogRegistrationsAsync(path, cancellationToken);
     }
 
     async Task<ResourceCatalog> IDataSource.EnrichCatalogAsync(
         ResourceCatalog catalog,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         catalog = await EnrichCatalogAsync(catalog, cancellationToken);
 
@@ -790,9 +794,10 @@ public abstract class StructuredFileDataSource : IDataSource
         return catalog;
     }
 
-    Task<(DateTime Begin, DateTime End)> IDataSource.GetTimeRangeAsync(
+    Task<CatalogTimeRange> IDataSource.GetTimeRangeAsync(
         string catalogId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         return GetTimeRangeAsync(catalogId, cancellationToken);
     }
@@ -844,8 +849,9 @@ public abstract class StructuredFileDataSource : IDataSource
         string rootPath,
         DateTime begin,
         DateTime end,
-        FileSource fileSource,
-        CancellationToken cancellationToken)
+        FileSource<TAdditionalFileSourceSettings> fileSource,
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -897,9 +903,10 @@ public abstract class StructuredFileDataSource : IDataSource
         CustomDateTimeOffset rootDate,
         DateTime begin,
         DateTime end,
-        FileSource fileSource,
+        FileSource<TAdditionalFileSourceSettings> fileSource,
         string[] pathSegments,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -988,7 +995,8 @@ public abstract class StructuredFileDataSource : IDataSource
         DateTime begin,
         DateTime end,
         Dictionary<string, CustomDateTimeOffset> folderNameToDateTimeMap,
-        string expectedSegmentName)
+        string expectedSegmentName
+    )
     {
         if (begin == DateTime.MinValue && end == DateTime.MinValue)
         {
@@ -1030,9 +1038,10 @@ public abstract class StructuredFileDataSource : IDataSource
 
     internal static bool TryGetFileBeginByPath(
         string filePath,
-        FileSource fileSource,
+        FileSource<TAdditionalFileSourceSettings> fileSource,
         out CustomDateTimeOffset fileBegin,
-        CustomDateTimeOffset folderBegin = default)
+        CustomDateTimeOffset folderBegin = default
+    )
     {
         var fileName = Path.GetFileName(filePath);
         bool success;
@@ -1107,7 +1116,10 @@ public abstract class StructuredFileDataSource : IDataSource
         return success;
     }
 
-    private static CustomDateTimeOffset GetFolderBegin_AnyKind(string filePath, FileSource fileSource)
+    private static CustomDateTimeOffset GetFolderBegin_AnyKind(
+        string filePath, 
+        FileSource<TAdditionalFileSourceSettings> fileSource
+    )
     {
         var folderBegin = default(CustomDateTimeOffset);
 
@@ -1140,8 +1152,9 @@ public abstract class StructuredFileDataSource : IDataSource
 
     private static bool TryGetFileBeginByName_AnyKind(
         string fileName,
-        FileSource fileSource,
-        out CustomDateTimeOffset fileBegin)
+        FileSource<TAdditionalFileSourceSettings> fileSource,
+        out CustomDateTimeOffset fileBegin
+    )
     {
         /* (1) Regex is required in scenarios when there are more complex
          * file names, i.e. file names containing an opaque string that
@@ -1189,8 +1202,9 @@ public abstract class StructuredFileDataSource : IDataSource
     }
 
     private static void ValidateFileSourceGroup(
-        IReadOnlyList<FileSource> fileSourceGroup,
-        TimeSpan? samplePeriod = default)
+        IReadOnlyList<FileSource<TAdditionalFileSourceSettings>> fileSourceGroup,
+        TimeSpan? samplePeriod = default
+    )
     {
         // Are there any file sources?
         if (!fileSourceGroup.Any())

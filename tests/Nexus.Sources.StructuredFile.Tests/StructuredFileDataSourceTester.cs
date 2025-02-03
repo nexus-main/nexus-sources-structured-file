@@ -1,42 +1,23 @@
 ﻿using Nexus.DataModel;
 using Nexus.Extensibility;
-using System.Text.Json;
 
 namespace Nexus.Sources.Tests;
 
-public class StructuredFileDataSourceTester : StructuredFileDataSource
+public class StructuredFileDataSourceTester : StructuredFileDataSource<object?, object?>
 {
-    private readonly Action<ReadInfo>? _onNewReadInfo;
+    private readonly Action<ReadInfo<object?>>? _onNewReadInfo;
     
     public StructuredFileDataSourceTester(
-        Action<ReadInfo>? onNewReadInfo = default
+        Action<ReadInfo<object?>>? onNewReadInfo = default
     )
     {
         _onNewReadInfo = onNewReadInfo;
     }
 
-    public Dictionary<string, Dictionary<string, IReadOnlyList<FileSource>>> Config { get; private set; } = default!;
-
     public new Task<(DateTime RegularUtcFileBegin, (string FilePath, TimeSpan FileBeginOffset)[])> 
-        FindFileBeginAndPathsAsync(DateTime begin, FileSource fileSource)
+        FindFileBeginAndPathsAsync(DateTime begin, FileSource<object?> fileSource)
     {
         return base.FindFileBeginAndPathsAsync(begin, fileSource);
-    }
-
-    protected override async Task InitializeAsync(CancellationToken cancellationToken)
-    {
-        var configFilePath = Path.Combine(Root, "config.json");
-
-        if (!File.Exists(configFilePath))
-            throw new Exception($"The configuration file does not exist on path {configFilePath}.");
-
-        var jsonString = await File.ReadAllTextAsync(configFilePath, cancellationToken);
-        Config = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, IReadOnlyList<FileSource>>>>(jsonString)!;
-    }
-
-    protected override Task<Func<string, Dictionary<string, IReadOnlyList<FileSource>>>> GetFileSourceProviderAsync(CancellationToken cancellationToken)
-    {
-        return Task.FromResult<Func<string, Dictionary<string, IReadOnlyList<FileSource>>>>(catalogId => Config[catalogId]);
     }
 
     protected override Task<CatalogRegistration[]> GetCatalogRegistrationsAsync(string path, CancellationToken cancellationToken)
@@ -51,7 +32,7 @@ public class StructuredFileDataSourceTester : StructuredFileDataSource
             samplePeriod: TimeSpan.FromSeconds(1)
         );
 
-        var fileSourceId = Config.First().Value.First().Key;
+        var fileSourceId = Context.SourceConfiguration.FileSourceGroupsMap.First().Value.First().Key;
 
         var resource = new ResourceBuilder(id: "Resource1")
             .WithFileSourceId(fileSourceId)
@@ -63,7 +44,7 @@ public class StructuredFileDataSourceTester : StructuredFileDataSource
         return Task.FromResult(catalog);
     }
 
-    protected override async Task ReadAsync(ReadInfo readInfo, ReadRequest[] readRequests, CancellationToken cancellationToken)
+    protected override async Task ReadAsync(ReadInfo<object?> readInfo, ReadRequest[] readRequests, CancellationToken cancellationToken)
     {
         _onNewReadInfo?.Invoke(readInfo);
 

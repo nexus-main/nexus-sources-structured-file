@@ -1,8 +1,16 @@
-﻿using System.Text.Json;
-using Nexus.DataModel;
-using Nexus.Extensibility;
+﻿namespace Nexus.Sources;
 
-namespace Nexus.Sources;
+/// <summary>
+/// Settings for the structure file data source.
+/// </summary>
+/// <typeparam name="TAdditionalSettings">The type of the additional settings (top-level).</typeparam>
+/// <typeparam name="TAdditionalFileSourceSettings">The type of the additional file source settings.</typeparam>
+/// <param name="FileSourceGroupsMap">The file source groups map.</param>
+/// <param name="AdditionalSettings">The addtional settings.</param>
+public record StructuredFileDataSourceSettings<TAdditionalSettings, TAdditionalFileSourceSettings>(
+    Dictionary<string, Dictionary<string, IReadOnlyList<FileSource<TAdditionalFileSourceSettings>>>> FileSourceGroupsMap,
+    TAdditionalSettings AdditionalSettings
+);
 
 /// <summary>
 /// A structure to hold information about a file-based database.
@@ -16,8 +24,8 @@ namespace Nexus.Sources;
 /// <param name="FileNameOffset">The file name offset of the file data. This is useful for files that are named according to the end date of the data they contain.</param>
 /// <param name="UtcOffset">The UTC offset of the file data.</param>
 /// <param name="IrregularTimeInterval">The file time interval is irregular. I.e. the file end is not aligned to multiples of the file period.</param>
-/// <param name="AdditionalProperties">Additional properties to be used by the data source implementation.</param>
-public record FileSource(
+/// <param name="AdditionalSettings">Additional settings to be used by the data source implementation.</param>
+public record FileSource<TAdditionalSettings>(
     DateTime Begin,
     string[] PathSegments,
     string FileTemplate,
@@ -27,7 +35,7 @@ public record FileSource(
     TimeSpan FileNameOffset,
     TimeSpan UtcOffset,
     bool IrregularTimeInterval,
-    JsonElement? AdditionalProperties
+    TAdditionalSettings AdditionalSettings
 );
 
 /// <summary>
@@ -39,7 +47,7 @@ public record FileSource(
 /// <param name="FileOffset">The element offset within the file.</param>
 /// <param name="FileBlock">The element count to read from the file.</param>
 /// <param name="FileLength">The expected total number of elements within the file.</param>
-public record ReadInfo(
+public record ReadInfo<TAdditionalSettings>(
 
 #if !IS_PUBLISH_BUILD
 #pragma warning disable CS1573
@@ -48,7 +56,7 @@ public record ReadInfo(
 #endif
 
     string FilePath,
-    FileSource FileSource,
+    FileSource<TAdditionalSettings> FileSource,
     DateTime RegularFileBegin,
     long FileOffset,
     long FileBlock,

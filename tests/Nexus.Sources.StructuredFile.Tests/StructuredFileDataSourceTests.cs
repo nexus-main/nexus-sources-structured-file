@@ -9,6 +9,8 @@ using Xunit;
 
 namespace Nexus.Sources.Tests;
 
+using MySettings = StructuredFileDataSourceSettings<object?, object?>;
+
 public class StructuredFileDataSourceTests
 {
     [Theory]
@@ -72,14 +74,8 @@ public class StructuredFileDataSourceTests
     [Fact]
     public async Task CanProvideFirstFile()
     {
-        var tester = new StructuredFileDataSourceTester();
-        var dataSource = tester as IDataSource;
-
-        var context = new DataSourceContext(
-            ResourceLocator: new Uri(Path.Combine(Directory.GetCurrentDirectory(), "DATABASES/F")),
-            SystemConfiguration: default!,
-            SourceConfiguration: default!,
-            RequestConfiguration: default!);
+        var dataSource = new StructuredFileDataSourceTester() as IDataSource<MySettings>;
+        var context = BuildContext("DATABASES/F");
 
         await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
@@ -90,7 +86,7 @@ public class StructuredFileDataSourceTests
                 BindingFlags.NonPublic | BindingFlags.Instance
             ) ?? throw new Exception("method info is null");
             
-        var config = tester.Config.Values.First().Values.First()[0];
+        var config = context.SourceConfiguration.FileSourceGroupsMap.Values.First().Values.First()[0];
 
         var args = new object[] { config, default! };
         methodInfo.Invoke(dataSource, args);
@@ -120,14 +116,8 @@ public class StructuredFileDataSourceTests
     {
         var expectedBegin = DateTime.ParseExact(expectedBeginString, "yyyy-MM-ddTHH-mm-ssZ", null, DateTimeStyles.AdjustToUniversal);
         var expectedEnd = DateTime.ParseExact(expectedEndString, "yyyy-MM-ddTHH-mm-ssZ", null, DateTimeStyles.AdjustToUniversal);
-
-        var dataSource = new StructuredFileDataSourceTester() as IDataSource;
-
-        var context = new DataSourceContext(
-            ResourceLocator: new Uri(Path.Combine(Directory.GetCurrentDirectory(), root)),
-            SystemConfiguration: default!,
-            SourceConfiguration: default!,
-            RequestConfiguration: default!);
+        var dataSource = new StructuredFileDataSourceTester() as IDataSource<MySettings>;
+        var context = BuildContext(root);
 
         await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
@@ -160,14 +150,8 @@ public class StructuredFileDataSourceTests
         // Arrange
         var begin = DateTime.ParseExact(beginString, "yyyy-MM-ddTHH-mm-ssZ", default, DateTimeStyles.AdjustToUniversal);
         var end = DateTime.ParseExact(endString, "yyyy-MM-ddTHH-mm-ssZ", default, DateTimeStyles.AdjustToUniversal);
-
-        var dataSource = new StructuredFileDataSourceTester() as IDataSource;
-
-        var context = new DataSourceContext(
-            ResourceLocator: new Uri(Path.Combine(Directory.GetCurrentDirectory(), root)),
-            SystemConfiguration: default!,
-            SourceConfiguration: default!,
-            RequestConfiguration: default!);
+        var dataSource = new StructuredFileDataSourceTester() as IDataSource<MySettings>;
+        var context = BuildContext(root);
 
         await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
@@ -197,14 +181,13 @@ public class StructuredFileDataSourceTests
     {
         // Arrange
         var expectedFileBegin = DateTime.ParseExact(expectedFileBeginString, "yyyy-MM-ddTHH-mm-ssZ", default, DateTimeStyles.AdjustToUniversal);
-        var configFilePath = $"DATABASES/{database}/config.json";
-        var configJson = File.ReadAllText(configFilePath);
-        var config = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, IReadOnlyList<FileSource>>>>(configJson)!;
-        var fileSource = config["/A/B/C"][key][0];
+        var context = BuildContext($"DATABASES/{database}");
+        var fileSource = context.SourceConfiguration.FileSourceGroupsMap["/A/B/C"][key][0];
         var fullFilePath = Path.Combine($"DATABASES/{database}", filePath);
 
         // Act
-        var success = StructuredFileDataSource.TryGetFileBeginByPath(fullFilePath, fileSource, out var fileBegin, folderBegin: default);
+        var success = StructuredFileDataSource<object?, object?>
+            .TryGetFileBeginByPath(fullFilePath, fileSource, out var fileBegin, folderBegin: default);
 
         // Assert
         Assert.True(success);
@@ -215,20 +198,12 @@ public class StructuredFileDataSourceTests
     public async Task CanFindFileBeginAndPaths_Database_M()
     {
         // Arrange
-        var databaseFolderPath = "DATABASES/M";
-        var configFilePath = $"{databaseFolderPath}/config.json";
-        var configJson = File.ReadAllText(configFilePath);
-        var config = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, IReadOnlyList<FileSource>>>>(configJson)!;
-        var fileSource = config["/A/B/C"]["default"][0];
         var dataSource = new StructuredFileDataSourceTester();
+        var context = BuildContext("DATABASES/M");
+        var fileSource = context.SourceConfiguration.FileSourceGroupsMap["/A/B/C"]["default"][0];
 
-        var context = new DataSourceContext(
-            ResourceLocator: new Uri(Path.Combine(Directory.GetCurrentDirectory(), databaseFolderPath)),
-            SystemConfiguration: default!,
-            SourceConfiguration: default!,
-            RequestConfiguration: default!);
-
-        await ((IDataSource)dataSource).SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
+        await ((IDataSource<MySettings>)dataSource)
+            .SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
         // Act
         var actual = await dataSource.FindFileBeginAndPathsAsync(
@@ -306,14 +281,9 @@ public class StructuredFileDataSourceTests
     public async Task CanRead_ReadInfos(string database, string beginString, string endString)
     {
         // Arrange
-        var readInfos = new List<ReadInfo>();
-        var dataSource = new StructuredFileDataSourceTester(readInfos.Add) as IDataSource;
-
-        var context = new DataSourceContext(
-            ResourceLocator: new Uri(Path.Combine(Directory.GetCurrentDirectory(), $"DATABASES/{database[0]}")),
-            SystemConfiguration: default!,
-            SourceConfiguration: default!,
-            RequestConfiguration: default!);
+        var readInfos = new List<ReadInfo<object?>>();
+        var dataSource = new StructuredFileDataSourceTester(readInfos.Add) as IDataSource<MySettings>;
+        var context = BuildContext($"DATABASES/{database[0]}");
 
         await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
@@ -358,13 +328,8 @@ public class StructuredFileDataSourceTests
     [Fact]
     public async Task CanRead()
     {
-        var dataSource = new StructuredFileDataSourceTester() as IDataSource;
-
-        var context = new DataSourceContext(
-            ResourceLocator: new Uri(Path.Combine(Directory.GetCurrentDirectory(), "DATABASES/TESTDATA")),
-            SystemConfiguration: default!,
-            SourceConfiguration: default!,
-            RequestConfiguration: default!);
+        var dataSource = new StructuredFileDataSourceTester() as IDataSource<MySettings>;
+        var context = BuildContext("DATABASES/TESTDATA");
 
         await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
@@ -419,14 +384,8 @@ public class StructuredFileDataSourceTests
     {
         var begin = DateTime.ParseExact(beginString, "yyyy-MM-ddTHH-mm-ssZ", default, DateTimeStyles.AdjustToUniversal);
         var end = DateTime.ParseExact(endString, "yyyy-MM-ddTHH-mm-ssZ", default, DateTimeStyles.AdjustToUniversal);
-
-        var dataSource = new StructuredFileDataSourceTester() as IDataSource;
-
-        var context = new DataSourceContext(
-            ResourceLocator: new Uri(Path.Combine(Directory.GetCurrentDirectory(), "DATABASES/TESTDATA")),
-            SystemConfiguration: default!,
-            SourceConfiguration: default!,
-            RequestConfiguration: default!);
+        var dataSource = new StructuredFileDataSourceTester() as IDataSource<MySettings>;
+        var context = BuildContext("DATABASES/TESTDATA");
 
         await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
@@ -446,5 +405,30 @@ public class StructuredFileDataSourceTests
                 CancellationToken.None
             )
         );
+    }
+
+    private DataSourceContext<MySettings> BuildContext(
+        string rootFolderPath
+    )
+    {
+        var configFilePath = Path.Combine(rootFolderPath, "config.json");
+
+        if (!File.Exists(configFilePath))
+            throw new Exception($"The configuration file does not exist on path {configFilePath}.");
+
+        var jsonString = File.ReadAllText(configFilePath);
+
+        var sourceConfiguration = JsonSerializer.Deserialize<MySettings>(
+            jsonString, 
+            JsonSerializerOptions.Web
+        )!;
+
+        var context = new DataSourceContext<MySettings>(
+            ResourceLocator: new Uri(Path.Combine(Directory.GetCurrentDirectory(), rootFolderPath)),
+            SourceConfiguration: sourceConfiguration,
+            RequestConfiguration: default!
+        );
+
+        return context;
     }
 }

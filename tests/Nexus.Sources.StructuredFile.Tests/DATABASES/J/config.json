@@ -1,32 +1,37 @@
 {
-  "/A/B/C": {
-    "default": [
-      {
-        "PathSegments": [
-          "'DATA1'"
-        ],
-        "FileTemplate": "yyyy_MM_dd'.dat'",
-        "FilePeriod": "1.00:00:00",
-        "UtcOffset": "00:00:00"
-      }, 
-      {
-        "Begin": "2020-01-02",
-        "PathSegments": [
-          "'DATA1'"
-        ],
-        "FileTemplate": "yyyy-MM-dd'.dat'",
-        "FilePeriod": "1.00:00:00",
-        "UtcOffset": "00:00:00"
-      },
-      {
-        "Begin": "2020-01-03",
-        "PathSegments": [
-          "'DATA2'"
-        ],
-        "FileTemplate": "yyyy-MM-dd'.dat'",
-        "FilePeriod": "1.00:00:00",
-        "UtcOffset": "00:00:00"
-      }
-    ]
+  "fileSourceGroupsMap": {
+    "/A/B/C": {
+      "default": [
+        {
+          "pathSegments": [
+            "'DATA1'"
+          ],
+          "fileTemplate": "yyyy_MM_dd'.dat'",
+          "filePeriod": "1.00:00:00",
+          "utcOffset": "00:00:00"
+        }, 
+        {
+          "begin": "2020-01-02",
+          "pathSegments": [
+            "'DATA1'"
+          ],
+          "fileTemplate": "yyyy-MM-dd'.dat'",
+          "filePeriod": "1.00:00:00",
+          "utcOffset": "00:00:00"
+        },
+        {
+          "begin": "2020-01-03",
+          "pathSegments": [
+            "'DATA2'"
+          ],
+          "fileTemplate": "yyyy-MM-dd'.dat'",
+          "filePeriod": "1.00:00:00",
+          "utcOffset": "00:00:00"
+        }
+      ]
+    }
+  },
+  "additionalSettings": {
+    "titleMap": {}
   }
 }

@@ -1,15 +1,20 @@
 {
-  "/A/B/C": {
-    "calibrated": [{
-      "PathSegments": [
-        "'DATA'",
-        "'calibrated'",
-        "yyyy-MM",
-        "yyyy-MM-dd"
-      ],
-      "FileTemplate": "yyyy-MM-dd_HH-mm-ss'.dat'",
-      "FilePeriod": "00:10:00",
-      "UtcOffset": "00:00:00"
-    }]
+  "fileSourceGroupsMap": {
+    "/A/B/C": {
+      "calibrated": [{
+        "pathSegments": [
+          "'DATA'",
+          "'calibrated'",
+          "yyyy-MM",
+          "yyyy-MM-dd"
+        ],
+        "fileTemplate": "yyyy-MM-dd_HH-mm-ss'.dat'",
+        "filePeriod": "00:10:00",
+        "utcOffset": "00:00:00"
+      }]
+    }
+  },
+  "additionalSettings": {
+    "titleMap": {}
   }
 }

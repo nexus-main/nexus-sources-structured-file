@@ -1,13 +1,18 @@
 {
-  "/A/B/C": {
-    "default": [{
-      "PathSegments": [
-        "'DATA'",
-        "'prefix_'dd-MM-yyyy"
-      ],
-      "FileTemplate": "HH-mm-ss'.dat'",
-      "FilePeriod": "00:00:01",
-      "UtcOffset": "00:00:00"
-    }]
+  "fileSourceGroupsMap": {
+    "/A/B/C": {
+      "default": [{
+        "pathSegments": [
+          "'DATA'",
+          "'prefix_'dd-MM-yyyy"
+        ],
+        "fileTemplate": "HH-mm-ss'.dat'",
+        "filePeriod": "00:00:01",
+        "utcOffset": "00:00:00"
+      }]
+    }
+  },
+  "additionalSettings": {
+    "titleMap": {}
   }
 }
