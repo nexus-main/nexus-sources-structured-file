@@ -2,7 +2,7 @@ using System.Globalization;
 
 internal record struct CustomDateTimeOffset
 {
-    private static TimeSpan ONE_DAY = TimeSpan.FromDays(1);
+    private static readonly TimeSpan ONE_DAY = TimeSpan.FromDays(1);
 
     private DateTime? _utcDateTime;
 
