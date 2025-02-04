@@ -35,7 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Nexus.Extensibility" Version="2.0.0-beta.48">
+    <PackageReference Include="Nexus.Extensibility" Version="2.0.0-beta.50">
       <!-- This is important! Took me 1 day to figure out why suddenly there are MissingMethodExceptions! -->
       <ExcludeAssets>runtime;native</ExcludeAssets>
     </PackageReference>

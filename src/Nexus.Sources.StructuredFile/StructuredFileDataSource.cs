@@ -12,7 +12,8 @@ namespace Nexus.Sources;
 /// A base class to simplify reading data from structured, file-based data sources.
 /// </summary>
 public abstract class StructuredFileDataSource<TAdditionalSettings, TAdditionalFileSourceSettings> 
-    : IDataSource<StructuredFileDataSourceSettings<TAdditionalSettings, TAdditionalFileSourceSettings>>
+    : IDataSource<StructuredFileDataSourceSettings<TAdditionalSettings, TAdditionalFileSourceSettings>>,
+      IUpgradableDataSource
 {
     // This implementation assumes the following:
     //
@@ -60,8 +61,14 @@ public abstract class StructuredFileDataSource<TAdditionalSettings, TAdditionalF
 
     /// <summary>
     /// Gets the data logger. This property is not accessible from within class constructors as it will bet set later.
-    /// </summary>
+    /// </summary>  
     protected ILogger Logger { get; private set; } = default!;
+
+    /// <inheritdoc/>
+    public virtual Task<JsonElement> UpgradeSourceConfigurationAsync(JsonElement configuration, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(configuration);
+    }
 
     #region Protected API as seen by subclass
 
