@@ -42,9 +42,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="buildTransitive/PublishXml.targets">
-      <PackagePath>buildTransitive/PublishXml.targets</PackagePath>
-    </Content>
+    <None Include="buildTransitive/PublishXml.targets" Pack="true" PackagePath="buildTransitive/$(PackageId).targets" />
   </ItemGroup>
 
 </Project>
