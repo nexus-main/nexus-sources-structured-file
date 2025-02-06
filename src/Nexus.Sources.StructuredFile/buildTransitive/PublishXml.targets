@@ -1,0 +1,4 @@
+<Target Name="CopyDocumentationFile" BeforeTargets="PrepareForPublish">
+  <Copy SourceFiles="$(PkgNexus_Sources_StructuredFile)/lib/net9.0/Nexus.Sources.StructuredFile.xml" 
+        DestinationFolder="$(PublishDir)" />
+</Target>

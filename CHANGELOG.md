@@ -1,3 +1,7 @@
+## v2.0.0-beta.39 - 2025-02-06
+
+- Add target to include XML file during publish
+
 ## v2.0.0-beta.38 - 2025-02-04
 
 - Follow Nexus changes

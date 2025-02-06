@@ -41,4 +41,10 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="buildTransitive/PublishXml.targets">
+      <PackagePath>buildTransitive/PublishXml.targets</PackagePath>
+    </Content>
+  </ItemGroup>
+
 </Project>
