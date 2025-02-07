@@ -1,4 +1,8 @@
-## v2.0.0-beta.39 - 2025-02-06
+## v2.0.0-beta.40 - 2025-02-07
+
+- Try to automatically set `GeneratePathProperty` to `true`
+
+## v2.0.0-beta.39 - 2025-02-07
 
 - Add target to include XML file during publish
 
