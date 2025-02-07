@@ -1,7 +1,7 @@
 ﻿namespace Nexus.Sources;
 
 /// <summary>
-/// Settings for the structure file data source.
+/// Settings for the structured file data source.
 /// </summary>
 /// <typeparam name="TAdditionalSettings">The type of the additional settings (top-level).</typeparam>
 /// <typeparam name="TAdditionalFileSourceSettings">The type of the additional file source settings.</typeparam>
