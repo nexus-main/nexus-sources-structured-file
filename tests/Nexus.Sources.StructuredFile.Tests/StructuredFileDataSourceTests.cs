@@ -246,6 +246,70 @@ public class StructuredFileDataSourceTests
     }
 
     [Theory]
+    [InlineData(
+        "2020-01-01T00:00:00Z",
+        "2020-01-01T00:40:00Z",
+        0,
+        "2020-01-01T00:35:00Z",
+        "2020-01-01T00:35:23Z",
+        0,
+        277)]
+    [InlineData(
+        "2020-01-01T00:40:00Z",
+        "2020-01-01T00:40:01Z",
+        0,
+        "2020-01-01T00:40:00Z",
+        "2020-01-01T00:40:00Z",
+        277,
+        1)]
+    public async Task CanProvideBufferBeginForIrregularFiles(
+        string beginString,
+        string endString,
+        int readInfoIndex,
+        string expectedRegularFileBeginString,
+        string expectedBufferBeginString,
+        long expectedFileOffset,
+        long expectedFileBlock)
+    {
+        // Arrange
+        var readInfos = new List<ReadInfo<object?>>();
+        var dataSource = new StructuredFileDataSourceTester(readInfos.Add) as IDataSource<MySettings>;
+        var context = BuildContext("DATABASES/O");
+
+        await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
+
+        var catalog = await dataSource.EnrichCatalogAsync(new("/A/B/C"), CancellationToken.None);
+        var resource = catalog.Resources![0];
+        var representation = resource.Representations![0];
+        var catalogItem = new CatalogItem(catalog, resource, representation, default);
+
+        var begin = DateTime.ParseExact(beginString, "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
+        var end = DateTime.ParseExact(endString, "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
+        var (data, status) = ExtensibilityUtilities.CreateBuffers(representation, begin, end);
+
+        var request = new ReadRequest(resource.Id, catalogItem, data, status);
+
+        // Act
+        await dataSource.ReadAsync(
+            begin,
+            end,
+            [request],
+            default!,
+            new Progress<double>(), CancellationToken.None
+        );
+
+        // Assert
+        var readInfo = readInfos[readInfoIndex];
+        var expectedRegularFileBegin = DateTime.ParseExact(expectedRegularFileBeginString, "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
+        var expectedBufferBegin = DateTime.ParseExact(expectedBufferBeginString, "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
+
+        Assert.Equal(expectedRegularFileBegin, readInfo.RegularFileBegin);
+        Assert.Equal(expectedBufferBegin, readInfo.BufferBegin);
+        Assert.Equal(expectedFileOffset, readInfo.FileOffset);
+        Assert.Equal(expectedFileBlock, readInfo.FileBlock);
+    }
+
+    [Theory]
     [InlineData("2020-01-01T00-00-00Z", "2020-01-01T00-00-00Z")]
     [InlineData("2020-01-02T00-00-00Z", "2020-01-01T00-00-00Z")]
     public async Task GetAvailabilityThrowsForInvalidTimePeriod(string beginString, string endString)
@@ -309,10 +373,17 @@ public class StructuredFileDataSourceTests
 
         // Assert
         var preparedReadInfos = readInfos
-            .Select(x => x with 
-                { 
-                    FileSource = default!,
-                    FilePath = x.FilePath.Split("/DATABASES/")[1]
+            .Select(x => new
+                {
+#if !IS_PUBLISH_BUILD
+                    x.BufferOffset,
+#endif
+                    FilePath = x.FilePath.Split("/DATABASES/")[1],
+                    FileSource = default(object?),
+                    x.RegularFileBegin,
+                    x.FileOffset,
+                    x.FileBlock,
+                    x.FileLength
                 }
             )
             .OrderBy(x => x.FilePath);

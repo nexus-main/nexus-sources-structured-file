@@ -523,6 +523,7 @@ public abstract class StructuredFileDataSource<TAdditionalSettings, TAdditionalF
                                         filePath,
                                         fileSource,
                                         regularUtcFileBegin,
+                                        actualBegin,
                                         actualFileOffset,
                                         actualFileBlock,
                                         regularFileLength
