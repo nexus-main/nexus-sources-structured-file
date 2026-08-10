@@ -1,0 +1,22 @@
+{
+  "fileSourceGroupsMap": {
+    "/A/B/C": {
+      "default": [
+        {
+          "pathSegments": [
+            "'DATA'"
+          ],
+          "fileTemplate": "yyyy-MM-ddTHH-mm-*Z'.dat'",
+          "fileDateTimePreselector": "(.{20})\\.dat",
+          "fileDateTimeSelector": "yyyy-MM-ddTHH-mm-ssZ",
+          "filePeriod": "00:00:10",
+          "utcOffset": "00:00:00",
+          "irregularTimeInterval": true
+        }
+      ]
+    }
+  },
+  "additionalSettings": {
+    "titleMap": {}
+  }
+}

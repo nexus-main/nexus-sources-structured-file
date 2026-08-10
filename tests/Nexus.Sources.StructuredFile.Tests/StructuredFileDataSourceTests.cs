@@ -262,7 +262,7 @@ public class StructuredFileDataSourceTests
         "2020-01-01T00:40:00Z",
         277,
         1)]
-    public async Task CanProvideBufferBeginForIrregularFiles(
+    public async Task CanProvideBufferBeginMetadataForIrregularFiles(
         string beginString,
         string endString,
         int readInfoIndex,
@@ -440,6 +440,63 @@ public class StructuredFileDataSourceTests
             begin,
             end,
             [request, request],
+            default!,
+            new Progress<double>(), CancellationToken.None
+        );
+
+        Assert.True(expectedData.SequenceEqual(MemoryMarshal.Cast<byte, long>(data.Span).ToArray()));
+        Assert.True(expectedStatus.SequenceEqual(status.ToArray()));
+    }
+
+    public static TheoryData<string, string, long[], byte[]> BufferBeginReadCases => new()
+    {
+        {
+            "2020-01-01T00:00:00Z",
+            "2020-01-01T00:00:10Z",
+            [0, 0, 0, 30, 40, 50, 0, 0, 0, 0],
+            [0, 0, 0, 1, 1, 1, 0, 0, 0, 0]
+        },
+        {
+            "2020-01-01T00:00:04Z",
+            "2020-01-01T00:00:07Z",
+            [40, 50, 0],
+            [1, 1, 0]
+        },
+        {
+            "2020-01-01T00:00:10Z",
+            "2020-01-01T00:00:13Z",
+            [100, 110, 120],
+            [1, 1, 1]
+        }
+    };
+
+    [Theory]
+    [MemberData(nameof(BufferBeginReadCases))]
+    public async Task CanReadTimestampedRowsUsingBufferBegin(
+        string beginString,
+        string endString,
+        long[] expectedData,
+        byte[] expectedStatus)
+    {
+        var dataSource = new TimestampedStructuredFileDataSourceTester() as IDataSource<MySettings>;
+        var context = BuildContext("DATABASES/R");
+
+        await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
+
+        var catalog = await dataSource.EnrichCatalogAsync(new("/A/B/C"), CancellationToken.None);
+        var resource = catalog.Resources![0];
+        var representation = resource.Representations![0];
+        var catalogItem = new CatalogItem(catalog, resource, representation, default);
+
+        var begin = DateTime.ParseExact(beginString, "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
+        var end = DateTime.ParseExact(endString, "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
+        var (data, status) = ExtensibilityUtilities.CreateBuffers(representation, begin, end);
+        var request = new ReadRequest(resource.Id, catalogItem, data, status);
+
+        await dataSource.ReadAsync(
+            begin,
+            end,
+            [request],
             default!,
             new Progress<double>(), CancellationToken.None
         );
