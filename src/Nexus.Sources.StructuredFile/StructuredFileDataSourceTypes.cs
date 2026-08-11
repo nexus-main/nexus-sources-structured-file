@@ -20,7 +20,8 @@ public record StructuredFileDataSourceSettings<TAdditionalSettings, TAdditionalF
 /// <param name="FileTemplate">A format string that describes the file naming scheme. The template of a file named 20200101_13_my-id_1234.dat would look like "yyyyMMdd_HH'_my-id_????.dat'".</param>
 /// <param name="FileDateTimePreselector">An optional regular expression to select only relevant parts of a file name (e.g. to select the date/time and a unqiue identifier in case there is more than one kind of file in the same folder). In case of a file named 20200101_13_my-id_1234.dat the preselector could be like "(.{11})_my-id". It is also required for file names containing an opaque string that changes for every file.</param>
 /// <param name="FileDateTimeSelector">An optional date/time selector which is mandatory when the preselector is provided. In case of a file named like "20200101_13_my-id_1234.dat", and a preselector of "(.{11})_my-id", the selector should be like "yyyyMMdd_HH".</param>
-/// <param name="FilePeriod">The period per file.</param>
+/// <param name="FilePeriod">The regular time-grid period used to locate and process candidate files, including wildcard file searches. It answers which nominal time bucket is inspected for a request timestamp and should match the cadence implied by the folder/file naming scheme. It is not the exact end of an irregular file. A smaller value creates finer processing buckets and more lookup iterations; a larger value creates broader buckets but can miss or group files incorrectly when it no longer matches the naming cadence.</param>
+/// <param name="MaxFileDuration">The optional maximum elapsed time covered by a single file, measured from the timestamp parsed from the file name. If omitted, <paramref name="FilePeriod" /> is used. For irregular files, this controls how far back the search includes earlier files that may still overlap the request; it does not define the regular search bucket and does not replace <paramref name="FilePeriod" />. A value smaller than the real file coverage can drop data or miss overlapping irregular files; a larger value can read more candidate data than necessary.</param>
 /// <param name="FileNameOffset">The file name offset of the file data. This is useful for files that are named according to the end date of the data they contain.</param>
 /// <param name="UtcOffset">The UTC offset of the file data.</param>
 /// <param name="IrregularTimeInterval">The file time interval is irregular. I.e. the file end is not aligned to multiples of the file period.</param>
@@ -32,6 +33,7 @@ public record FileSource<TAdditionalSettings>(
     string? FileDateTimePreselector,
     string? FileDateTimeSelector,
     TimeSpan FilePeriod,
+    TimeSpan? MaxFileDuration,
     TimeSpan FileNameOffset,
     TimeSpan UtcOffset,
     bool IrregularTimeInterval,

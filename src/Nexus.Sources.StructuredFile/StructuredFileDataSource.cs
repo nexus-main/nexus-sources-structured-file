@@ -447,6 +447,8 @@ public abstract class StructuredFileDataSource<TAdditionalSettings, TAdditionalF
                                     ? actualFileBegin
                                     : currentBegin;
 
+                                var maxFileDuration = fileSource.MaxFileDuration ?? fileSource.FilePeriod;
+
                                 Span<long> potentialEndTicks = [
 
                                     /* The end of the regular time interval */
@@ -454,7 +456,7 @@ public abstract class StructuredFileDataSource<TAdditionalSettings, TAdditionalF
 
                                     /* The end of the irregular time interval */
                                     fileSource.IrregularTimeInterval
-                                        ? (actualFileBegin + fileSource.FilePeriod).Ticks
+                                        ? (actualFileBegin + maxFileDuration).Ticks
                                         : long.MaxValue,
 
                                     /* The end of the overall time interval */
@@ -632,8 +634,10 @@ public abstract class StructuredFileDataSource<TAdditionalSettings, TAdditionalF
 
         if (fileSource.FileTemplate.Contains('?') || fileSource.FileTemplate.Contains('*'))
         {
+            var maxFileDuration = fileSource.MaxFileDuration ?? fileSource.FilePeriod;
+
             var actualUtcFileBegin = fileSource.IrregularTimeInterval
-                ? begin - fileSource.FilePeriod
+                ? begin - maxFileDuration
                 : regularUtcFileBegin;
 
             var regularUtcFileEnd = regularUtcFileBegin + fileSource.FilePeriod;
@@ -1217,6 +1221,15 @@ public abstract class StructuredFileDataSource<TAdditionalSettings, TAdditionalF
         // Are there any file sources?
         if (!fileSourceGroup.Any())
             throw new Exception("The list of file sources must not be empty.");
+
+        foreach (var fileSource in fileSourceGroup)
+        {
+            if (fileSource.FilePeriod <= TimeSpan.Zero)
+                throw new Exception("The file source filePeriod property must be greater than zero.");
+
+            if (fileSource.MaxFileDuration.HasValue && fileSource.MaxFileDuration.Value <= TimeSpan.Zero)
+                throw new Exception("The file source maxFileDuration property must be greater than zero when provided.");
+        }
 
         // Short-cut for single file source
         if (fileSourceGroup.Count == 1)

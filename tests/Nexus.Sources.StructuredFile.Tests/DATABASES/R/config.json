@@ -10,6 +10,7 @@
           "fileDateTimePreselector": "(.{20})\\.dat",
           "fileDateTimeSelector": "yyyy-MM-ddTHH-mm-ssZ",
           "filePeriod": "00:00:10",
+          "maxFileDuration": "00:00:11",
           "utcOffset": "00:00:00",
           "irregularTimeInterval": true
         }
