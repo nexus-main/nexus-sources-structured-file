@@ -1,3 +1,8 @@
+## v2.0.0-beta.41 - 2026-08-11
+
+- Support configurable max file duration (`FileSource<TAdditionalSettings>.MaxFileDuration`)
+- Added `BufferBegin` property to `ReadInfo<TAdditionalSettings>`
+
 ## v2.0.0-beta.40 - 2025-02-07
 
 - Try to automatically set `GeneratePathProperty` to `true`
