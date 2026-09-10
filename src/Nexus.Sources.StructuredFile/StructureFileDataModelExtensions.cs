@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Nexus.DataModel;
 
 /// <summary>
@@ -8,9 +10,11 @@ public static class StructuredFileDataModelExtensions
     #region Fluent API
 
     /// <summary>
-    /// A constant with the key prefix for file source id properties.
+    /// A constant with the key for a file source id map property.
     /// </summary>
-    public const string FileSourceIdKey = "file-source-id";
+    public const string FileSourceIdMapKey = "file-source-id-map";
+
+    private static readonly ConditionalWeakTable<ResourceBuilder, Dictionary<string, string>> _fileSourceIdMaps = new();
 
     /// <summary>
     /// Adds a <see cref="Representation"/> and associates it with a file source ID.
@@ -21,9 +25,12 @@ public static class StructuredFileDataModelExtensions
     /// <returns>The resource builder.</returns>
     public static ResourceBuilder AddRepresentation(this ResourceBuilder resourceBuilder, Representation representation, string fileSourceId)
     {
+        var map = _fileSourceIdMaps.GetOrCreateValue(resourceBuilder);
+        map[representation.Id] = fileSourceId;
+
         return resourceBuilder
             .AddRepresentation(representation)
-            .WithProperty($"{FileSourceIdKey}:{representation.Id}", fileSourceId);
+            .WithProperty(FileSourceIdMapKey, map);
     }
 
     #endregion
