@@ -513,7 +513,7 @@ public abstract class StructuredFileDataSource<TAdditionalSettings, TAdditionalF
                                         var originalName = catalogItem.Resource.Properties?
                                             .GetStringValue(DataModelExtensions.OriginalNameKey) ?? throw new Exception("The OriginalName property is not set.");
 
-                                        return new ReadRequest(
+                                        return new StructuredFileReadRequest(
                                             OriginalResourceName: originalName,
                                             CatalogItem: request.CatalogItem,
                                             Data: slicedData,
@@ -590,7 +590,7 @@ public abstract class StructuredFileDataSource<TAdditionalSettings, TAdditionalF
     /// <returns>The task.</returns>
     protected abstract Task ReadAsync(
         ReadInfo<TAdditionalFileSourceSettings> info,
-        ReadRequest[] readRequests,
+        StructuredFileReadRequest[] readRequests,
         CancellationToken cancellationToken
     );
 

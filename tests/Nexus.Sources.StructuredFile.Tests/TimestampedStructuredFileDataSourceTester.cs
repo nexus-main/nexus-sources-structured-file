@@ -15,7 +15,7 @@ public class TimestampedStructuredFileDataSourceTester : StructuredFileDataSourc
     protected override Task<ResourceCatalog> EnrichCatalogAsync(ResourceCatalog catalog, CancellationToken cancellationToken)
     {
         var representation = new Representation(
-            dataType: NexusDataType.INT64,
+            dataType: NexusDataType.Int64,
             samplePeriod: TimeSpan.FromSeconds(1)
         );
 
@@ -33,7 +33,7 @@ public class TimestampedStructuredFileDataSourceTester : StructuredFileDataSourc
         return Task.FromResult(catalog);
     }
 
-    protected override async Task ReadAsync(ReadInfo<object?> info, ReadRequest[] readRequests, CancellationToken cancellationToken)
+    protected override async Task ReadAsync(ReadInfo<object?> info, StructuredFileReadRequest[] readRequests, CancellationToken cancellationToken)
     {
         var samplePeriod = readRequests.First().CatalogItem.Representation.SamplePeriod;
         var lines = await File.ReadAllLinesAsync(info.FilePath, cancellationToken);

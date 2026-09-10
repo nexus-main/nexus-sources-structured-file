@@ -1,4 +1,6 @@
-﻿namespace Nexus.Sources;
+﻿using Nexus.DataModel;
+
+namespace Nexus.Sources;
 
 /// <summary>
 /// Settings for the structured file data source.
@@ -38,6 +40,20 @@ public record FileSource<TAdditionalSettings>(
     TimeSpan UtcOffset,
     bool IrregularTimeInterval,
     TAdditionalSettings AdditionalSettings
+);
+
+/// <summary>
+/// A read request.
+/// </summary>
+/// <param name="OriginalResourceName">The original resource name.</param>
+/// <param name="CatalogItem">The catalog item to be read.</param>
+/// <param name="Data">The data buffer.</param>
+/// <param name="Status">The status buffer. A value of 0x01 ('1') indicates that the corresponding value in the data buffer is valid, otherwise it is treated as <see cref="float.NaN"/> or <see cref="double.NaN"/>, respectively.</param>
+public record StructuredFileReadRequest(
+    string OriginalResourceName,
+    CatalogItem CatalogItem,
+    Memory<byte> Data,
+    Memory<byte> Status
 );
 
 /// <summary>

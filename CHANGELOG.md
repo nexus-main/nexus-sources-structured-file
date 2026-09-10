@@ -1,3 +1,8 @@
+## v2.0.0-beta.45 - 2026-09-10
+
+- Bump dependencies
+- Fix ReadAsync API
+
 ## v2.0.0-beta.44 - 2026-09-10
 
 - Replace scalar `file-source-id` resource property with representation-keyed `file-source-id-map` to allow routing different representations to different file source groups

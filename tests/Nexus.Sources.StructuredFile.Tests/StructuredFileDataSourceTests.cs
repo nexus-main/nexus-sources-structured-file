@@ -287,7 +287,7 @@ public class StructuredFileDataSourceTests
         var end = DateTime.ParseExact(endString, "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
         var (data, status) = ExtensibilityUtilities.CreateBuffers(representation, begin, end);
 
-        var request = new ReadRequest(resource.Id, catalogItem, data, status);
+        var request = new ReadRequest(resource.Id, catalogItem, data, status, _ => Task.CompletedTask, CancellationToken.None);
 
         // Act
         await dataSource.ReadAsync(
@@ -360,7 +360,7 @@ public class StructuredFileDataSourceTests
         var end = DateTime.ParseExact(endString, "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
         var (data, status) = ExtensibilityUtilities.CreateBuffers(representation, begin, end);
 
-        var request = new ReadRequest(resource.Id, catalogItem, data, status);
+        var request = new ReadRequest(resource.Id, catalogItem, data, status, _ => Task.CompletedTask, CancellationToken.None);
 
         // Act
         await dataSource.ReadAsync(
@@ -434,7 +434,7 @@ public class StructuredFileDataSourceTests
         GenerateData(new DateTimeOffset(2020, 01, 02, 09, 40, 00, TimeSpan.Zero), length: 600);
         GenerateData(new DateTimeOffset(2020, 01, 02, 09, 50, 00, TimeSpan.Zero), length: 600);
 
-        var request = new ReadRequest(resource.Id, catalogItem, data, status);
+        var request = new ReadRequest(resource.Id, catalogItem, data, status, _ => Task.CompletedTask, CancellationToken.None);
 
         await dataSource.ReadAsync(
             begin,
@@ -497,7 +497,7 @@ public class StructuredFileDataSourceTests
         var begin = DateTime.ParseExact(beginString, "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
         var end = DateTime.ParseExact(endString, "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
         var (data, status) = ExtensibilityUtilities.CreateBuffers(representation, begin, end);
-        var request = new ReadRequest(resource.Id, catalogItem, data, status);
+        var request = new ReadRequest(resource.Id, catalogItem, data, status, _ => Task.CompletedTask, CancellationToken.None);
 
         await dataSource.ReadAsync(
             begin,
@@ -527,7 +527,7 @@ public class StructuredFileDataSourceTests
         var resource = catalog.Resources![0];
         var representation = resource.Representations![0];
         var catalogItem = new CatalogItem(catalog, resource, representation, default);
-        var request = new ReadRequest(resource.Id, catalogItem, default, default);
+        var request = new ReadRequest(resource.Id, catalogItem, default, default, _ => Task.CompletedTask, CancellationToken.None);
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
             dataSource.ReadAsync(
