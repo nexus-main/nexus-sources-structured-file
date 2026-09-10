@@ -332,11 +332,10 @@ public abstract class StructuredFileDataSource<TAdditionalSettings, TAdditionalF
     {
         var fileSourceGroupIndex = 0.0;
 
-        // group by file source ID (looked up from the representation-keyed map)
+        // group by file source ID (looked up by representation ID)
         var fileSourceGroups = requests
             .GroupBy(request => request.CatalogItem.Resource.Properties!.GetStringValue(
-                StructuredFileDataModelExtensions.FileSourceIdMapKey,
-                request.CatalogItem.Representation.Id
+                $"{StructuredFileDataModelExtensions.FileSourceIdKey}:{request.CatalogItem.Representation.Id}"
             )!)
             .ToList();
 

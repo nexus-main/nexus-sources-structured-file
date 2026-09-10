@@ -1,3 +1,7 @@
+## v2.0.0-beta.43 - 2026-09-10
+
+- Replace scalar `file-source-id` resource property with per-representation `file-source-id:{representation-id}` properties via `AddRepresentation` overload
+
 ## v2.0.0-beta.42 - 2026-09-10
 
 - Replace scalar `file-source-id` resource property with representation-keyed `file-source-id-map` to allow routing different representations to different file source groups

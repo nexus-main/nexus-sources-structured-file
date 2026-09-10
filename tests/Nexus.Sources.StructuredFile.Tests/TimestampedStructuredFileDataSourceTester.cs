@@ -22,11 +22,7 @@ public class TimestampedStructuredFileDataSourceTester : StructuredFileDataSourc
         var fileSourceId = Context.SourceConfiguration.FileSourceGroupsMap.First().Value.First().Key;
 
         var resource = new ResourceBuilder(id: "Resource1")
-            .WithFileSourceIdMap(new Dictionary<string, string>
-            {
-                [representation.Id] = fileSourceId
-            })
-            .AddRepresentation(representation)
+            .AddRepresentation(representation, fileSourceId)
             .Build();
 
         catalog = catalog.Merge(new ResourceCatalog(id: "/A/B/C", resources: new List<Resource>() { resource }));
