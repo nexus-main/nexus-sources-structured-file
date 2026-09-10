@@ -1,5 +1,3 @@
-using System.Runtime.CompilerServices;
-
 namespace Nexus.DataModel;
 
 /// <summary>
@@ -14,23 +12,25 @@ public static class StructuredFileDataModelExtensions
     /// </summary>
     public const string FileSourceIdMapKey = "file-source-id-map";
 
-    private static readonly ConditionalWeakTable<ResourceBuilder, Dictionary<string, string>> _fileSourceIdMaps = new();
-
     /// <summary>
-    /// Adds a <see cref="Representation"/> and associates it with a file source ID.
+    /// Adds the provided representations and associates them with file source IDs.
     /// </summary>
     /// <param name="resourceBuilder">The resource builder.</param>
-    /// <param name="representation">The representation to add.</param>
-    /// <param name="fileSourceId">The id of the file source to associate with this representation.</param>
+    /// <param name="fileSourceIdsByRepresentation">The file source IDs keyed by representation.</param>
     /// <returns>The resource builder.</returns>
-    public static ResourceBuilder AddRepresentation(this ResourceBuilder resourceBuilder, Representation representation, string fileSourceId)
+    public static ResourceBuilder AddRepresentations(
+        this ResourceBuilder resourceBuilder,
+        IReadOnlyDictionary<Representation, string> fileSourceIdsByRepresentation
+    )
     {
-        var map = _fileSourceIdMaps.GetOrCreateValue(resourceBuilder);
-        map[representation.Id] = fileSourceId;
+        var fileSourceIdMap = fileSourceIdsByRepresentation.ToDictionary(
+            entry => entry.Key.Id,
+            entry => entry.Value
+        );
 
         return resourceBuilder
-            .AddRepresentation(representation)
-            .WithProperty(FileSourceIdMapKey, map);
+            .WithProperty(FileSourceIdMapKey, fileSourceIdMap)
+            .AddRepresentations(fileSourceIdsByRepresentation.Keys);
     }
 
     #endregion
