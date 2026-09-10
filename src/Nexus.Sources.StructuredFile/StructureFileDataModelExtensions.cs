@@ -8,19 +8,19 @@ public static class StructuredFileDataModelExtensions
     #region Fluent API
 
     /// <summary>
-    /// A constant with the key for a file source property.
+    /// A constant with the key for a file source id map property.
     /// </summary>
-    public const string FileSourceIdKey = "file-source-id";
+    public const string FileSourceIdMapKey = "file-source-id-map";
 
     /// <summary>
-    /// Adds a file source id property.
+    /// Adds a file source id map property that maps representation IDs to file source IDs.
     /// </summary>
     /// <param name="resourceBuilder">The resource builder.</param>
-    /// <param name="fileSourceId">The id of the file source to add.</param>
+    /// <param name="fileSourceIdMap">The map of representation IDs to file source IDs.</param>
     /// <returns>A resource catalog builder.</returns>
-    public static ResourceBuilder WithFileSourceId(this ResourceBuilder resourceBuilder, string fileSourceId)
+    public static ResourceBuilder WithFileSourceIdMap(this ResourceBuilder resourceBuilder, Dictionary<string, string> fileSourceIdMap)
     {
-        return resourceBuilder.WithProperty(FileSourceIdKey, fileSourceId);
+        return resourceBuilder.WithProperty(FileSourceIdMapKey, fileSourceIdMap);
     }
 
     #endregion

@@ -1,3 +1,7 @@
+## v2.0.0-beta.42 - 2026-09-10
+
+- Replace scalar `file-source-id` resource property with representation-keyed `file-source-id-map` to allow routing different representations to different file source groups
+
 ## v2.0.0-beta.41 - 2026-08-11
 
 - Support configurable max file duration (`FileSource<TAdditionalSettings>.MaxFileDuration`)

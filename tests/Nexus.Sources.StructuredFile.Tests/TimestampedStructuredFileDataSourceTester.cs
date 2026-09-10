@@ -22,7 +22,10 @@ public class TimestampedStructuredFileDataSourceTester : StructuredFileDataSourc
         var fileSourceId = Context.SourceConfiguration.FileSourceGroupsMap.First().Value.First().Key;
 
         var resource = new ResourceBuilder(id: "Resource1")
-            .WithFileSourceId(fileSourceId)
+            .WithFileSourceIdMap(new Dictionary<string, string>
+            {
+                [representation.Id] = fileSourceId
+            })
             .AddRepresentation(representation)
             .Build();
 
