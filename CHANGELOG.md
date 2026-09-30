@@ -1,3 +1,7 @@
+## v2.0.0-beta.47 - 2026-09-30
+
+- Update Nexus.Extensibility dependency to beta.58.
+
 ## v2.0.0-beta.46 - 2026-09-17
 
 - Fix settings declaration
